@@ -6,21 +6,31 @@
 #include "shell.h"
 
 int MAX_ARGS_SIZE = 3;
+//1.2.1 change to 7 for 5 tokens + "set" + variable name
+int MAX_SET_SIZE = 7;
 
 int help();
 int quit();
 int badcommand();
-int set(char* var, char* value);
+//1.2.1 changed argument to char* values[] and int values_size
+int set(char* var, char* values[], int values_size);
 int print(char* var);
 int run(char* script);
 int badcommandFileDoesNotExist();
+//1.2.1 error if too many tokens
+int badcommandTooManyTokens();
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
 	int i;
 
+	//1.2.1 adapt to make it work with special set tokens
 	if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
-		return badcommand();
+		if (strcmp(command_args[0], "set")==0){
+			if (args_size > MAX_SET_SIZE)
+				return badcommandTooManyTokens();
+		} else
+			return badcommand();
 	}
 
 
@@ -40,8 +50,14 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "set")==0) {
 		//set
-		if (args_size != 3) return badcommand();	
-		return set(command_args[1], command_args[2]);
+		//1.2.1 change arg_size to <= 7 to store up to 5 tokens 
+		if (args_size > 7) return badcommandTooManyTokens();
+		//1.2.1 Store all arguments at indices 2 or greater in an array
+		char* to_store[args_size-2];
+		for (i=2; i<args_size; i++){
+			to_store[i-2] = command_args[i];
+		}
+		return set(command_args[1], to_store, args_size-2);
 	
 	} else if (strcmp(command_args[0], "print")==0) {
 		if (args_size != 2) return badcommand();
@@ -82,8 +98,24 @@ int badcommandFileDoesNotExist(){
 	return 3;
 }
 
-int set(char* var, char* value){
+//1.2.1 error if too many tokens
+int badcommandTooManyTokens(){
+	printf("%s\n", "Bad command: Too many tokens");
+	return 4;
+}
 
+//1.2.1 changed function arguments and adapted for up to 5 tokens
+int set(char* var, char* values[], int values_size){
+
+	//1.2.1 value has length 100 per word + 1 for each space in between
+	char value[values_size*101];
+	value[0] = '\0';
+	for (int i=0; i<values_size; i++){
+		strcat(value, values[i]);
+		strcat(value, " ");
+	}
+
+	//Yann: Why is there this buffer stuff? Doesn't seem to do anything
 	char *link = "=";
 	char buffer[1000];
 	strcpy(buffer, var);
