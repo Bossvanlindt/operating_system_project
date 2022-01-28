@@ -83,7 +83,7 @@ int help(){
 help			Displays all the commands\n \
 quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
-echo $VAR/STRING		Displays the STRING assigned to VAR or displays the STRING\n \
+echo $VAR/STRING	Displays the STRING assigned to VAR or displays the STRING\n \
 print VAR		Displays the STRING assigned to VAR\n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);

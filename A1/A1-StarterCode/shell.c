@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> 
+#include <unistd.h>
 
 #include "interpreter.h"
 #include "shellmemory.h"
@@ -26,10 +27,28 @@ int main(int argc, char *argv[]) {
 	
 	//init shell memory
 	mem_init();
+	//1.2.3 stdin is the file pointer
+	FILE *input = stdin;
 
-	while(1) {							
-		printf("%c ",prompt);
-		fgets(userInput, MAX_USER_INPUT-1, stdin);
+	while(1) {				
+		//1.2.3 if the terminal is the input file pointer we print $
+		//Compares input's file descriptor with the terminal's
+		if (isatty(fileno(input))) {
+			printf("%c ",prompt);
+			
+		}	
+		//1.2.3 Runs on stdin as long as it doesn't return NULL
+		//1.2.3 Happens when a file is redirected
+		if (fgets(userInput, MAX_USER_INPUT-1, input) == NULL) {
+			//1.2.3 If we reached EOF, then we switch the input to terminal file process
+			input = fopen("/dev/tty","r");
+			//1.2.3 If failed
+			if(!input) {
+				perror("Error from the terminal");
+				exit(1);
+			}
+			continue;
+		}
 
 		errorCode = parseInput(userInput);
 		if (errorCode == -1) exit(99);	// ignore all other errors
@@ -56,7 +75,8 @@ int parseInput(char ui[]) {
 		for(b=0; ui[a]!='\0' && ui[a]!=' ' && a<1000; a++, b++)
 			tmp[b] = ui[a];						// extract a word
 	 
-		tmp[b] = '\0';
+		if (tmp[b-1] == '\n') tmp[b-1] = '\0';//1.2.3 remove line break for commands in files
+		else tmp[b] = '\0';
 
 		words[w] = strdup(tmp);
 
