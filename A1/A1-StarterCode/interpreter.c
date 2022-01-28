@@ -14,6 +14,7 @@ int quit();
 int badcommand();
 //1.2.1 changed argument to char* values[] and int values_size
 int set(char* var, char* values[], int values_size);
+int echo(char* var);
 int print(char* var);
 int run(char* script);
 int badcommandFileDoesNotExist();
@@ -59,6 +60,12 @@ int interpreter(char* command_args[], int args_size){
 		}
 		return set(command_args[1], to_store, args_size-2);
 	
+	} else if(strcmp(command_args[0], "echo") == 0) {
+		//echo
+		//1.2.2 only 1 argument
+		if (args_size != 2) return badcommand();
+		return echo(command_args[1]);
+
 	} else if (strcmp(command_args[0], "print")==0) {
 		if (args_size != 2) return badcommand();
 		return print(command_args[1]);
@@ -76,6 +83,7 @@ int help(){
 help			Displays all the commands\n \
 quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
+echo $VAR/STRING		Displays the STRING assigned to VAR or displays the STRING\n \
 print VAR		Displays the STRING assigned to VAR\n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
@@ -126,6 +134,17 @@ int set(char* var, char* values[], int values_size){
 
 	return 0;
 
+}
+//1.2.2 new echo function
+int echo(char *var) {
+	if(var[0] == '$' ) {
+		//1.2.2 Send the variable name starting after $ if it's a variable
+		print(&var[1]);
+	}
+	else {
+		printf("%s\n",var);
+	}
+	return 0;
 }
 
 int print(char* var){
