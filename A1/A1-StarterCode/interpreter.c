@@ -1,13 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> 
-
+#include <dirent.h>
 #include "shellmemory.h"
 #include "shell.h"
 
 int MAX_ARGS_SIZE = 3;
 //1.2.1 change to 7 for 5 tokens + "set" + variable name
 int MAX_SET_SIZE = 7;
+//1.2.4 file struct
+struct Files {
+	char name[100];
+	struct Files *next;
+};
+
 
 int help();
 int quit();
@@ -16,10 +22,17 @@ int badcommand();
 int set(char* var, char* values[], int values_size);
 int echo(char* var);
 int print(char* var);
+int my_ls();
+int compareStrings(char* first, char* second);
+struct Files* sortFile(struct Files *ptr, struct Files *file);
+void freeMemory(struct Files *head);
 int run(char* script);
 int badcommandFileDoesNotExist();
 //1.2.1 error if too many tokens
 int badcommandTooManyTokens();
+
+
+
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
@@ -70,7 +83,11 @@ int interpreter(char* command_args[], int args_size){
 		if (args_size != 2) return badcommand();
 		return print(command_args[1]);
 	
-	} else if (strcmp(command_args[0], "run")==0) {
+	} else if (strcmp(command_args[0], "my_ls") == 0) {
+		if (args_size != 1) return badcommand();
+		return my_ls();
+	} 
+	else if (strcmp(command_args[0], "run")==0) {
 		if (args_size != 2) return badcommand();
 		return run(command_args[1]);
 	
@@ -85,6 +102,7 @@ quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
 echo $VAR/STRING	Displays the STRING assigned to VAR or displays the STRING\n \
 print VAR		Displays the STRING assigned to VAR\n \
+my_ls			Displays the files and directories in the current directory \n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
 	return 0;
@@ -123,13 +141,6 @@ int set(char* var, char* values[], int values_size){
 		strcat(value, " ");
 	}
 
-	//Yann: Why is there this buffer stuff? Doesn't seem to do anything
-	char *link = "=";
-	char buffer[1000];
-	strcpy(buffer, var);
-	strcat(buffer, link);
-	strcat(buffer, value);
-
 	mem_set_value(var, value);
 
 	return 0;
@@ -150,6 +161,108 @@ int echo(char *var) {
 int print(char* var){
 	printf("%s\n", mem_get_value(var)); 
 	return 0;
+}
+
+int my_ls() {
+
+
+	//1.2.4 Open current directory stream
+	DIR *current_d = opendir(".");
+	//1.2.4 Creating directory entry
+	struct dirent *d;
+	if (current_d == NULL) {
+		printf("Can't open current directory");
+		return 5;
+	}
+
+	struct Files *file, *head;
+	int count = 0;
+
+	while ((d = readdir(current_d)) != NULL ) {
+		if (strcmp(d->d_name,"..") == 0 || strcmp(d->d_name,".") == 0) {
+			continue;
+		}
+		file = (struct Files*) malloc(sizeof(struct Files));
+		
+		strcpy(file->name,d->d_name);
+		if(count == 0) {
+			head = file;
+			file->next = NULL;
+			count++;
+			continue;
+		}
+		head = sortFile(head,file);
+	}
+
+	printf("%s\n",head->name);
+	while(head->next != NULL) {
+		printf("%s\n",head->next->name);
+		head = head->next;
+	}
+	free(head);
+	return 0;
+}
+
+int compareStrings(char* first, char* second) {
+	for(int i=0; second[i] && first[i]; i++) {		
+		int letter1 = first[i];
+		int letter2 = second[i];
+		if(first[i] >= 97 && first[i] <=122) {
+			letter1 -= 32;
+		}	
+		if(second[i] >= 97 && second[i] <=122) {
+			letter2 -= 32;
+		}
+		if (letter1 > letter2) {
+			return 1;
+		}
+		else if(letter1 < letter2) {
+			return -1;
+		}
+		else {
+			if (first[i] > second[i]) {
+				return -1;
+			}
+			else if (first[i] < second[i]) {
+				return 1;
+			}
+			else {
+				continue;
+			}
+		}
+	
+	}
+	return 1;
+}
+
+struct Files* sortFile(struct Files *ptr, struct Files *file) {
+	
+	if (compareStrings(ptr->name,file->name) == 1) {
+		file->next = ptr;
+		return file;
+	}
+
+	struct Files *head = ptr;
+	while(ptr->next != NULL) {
+		if (compareStrings(ptr->next->name,file->name) == 1) {
+			file->next = ptr->next;
+			ptr->next = file;
+			return head;
+		}
+		ptr = ptr->next;
+	}
+	ptr->next = file;
+	file->next = NULL;
+	return head;
+}
+
+void freeMemory(struct Files *head) {
+	struct Files *temp;
+	while (head != NULL) {
+		temp = head;
+		head = head->next;
+		free(temp);
+	}
 }
 
 int run(char* script){
