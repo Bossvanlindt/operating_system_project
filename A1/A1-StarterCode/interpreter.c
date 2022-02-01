@@ -8,7 +8,7 @@
 int MAX_ARGS_SIZE = 3;
 //1.2.1 change to 7 for 5 tokens + "set" + variable name
 int MAX_SET_SIZE = 7;
-//1.2.4 file struct
+//1.2.4 file struct linked list
 struct Files {
 	char name[100];
 	struct Files *next;
@@ -177,23 +177,26 @@ int my_ls() {
 
 	struct Files *file, *head;
 	int count = 0;
-
+	//1.2.4 Reading every file and directory entry in current directory
 	while ((d = readdir(current_d)) != NULL ) {
+		//Ignoring current and parent directory
 		if (strcmp(d->d_name,"..") == 0 || strcmp(d->d_name,".") == 0) {
 			continue;
 		}
 		file = (struct Files*) malloc(sizeof(struct Files));
-		
+		//1.2.4 Saving the file/dir name
 		strcpy(file->name,d->d_name);
+		//1.2.4 If the file is the first found, then it's the head of the linked list
 		if(count == 0) {
 			head = file;
 			file->next = NULL;
 			count++;
 			continue;
 		}
+
 		head = sortFile(head,file);
 	}
-
+	//1.2.4 displaying all the files alphabeticallt
 	printf("%s\n",head->name);
 	while(head->next != NULL) {
 		printf("%s\n",head->next->name);
@@ -202,11 +205,14 @@ int my_ls() {
 	free(head);
 	return 0;
 }
-
+//1.2.4 We want lowercase letters to be put before uppercase letters
 int compareStrings(char* first, char* second) {
+	//1.2.4 Checks which filename is greater than the other
+	//1 means first is bigger, -1 means second is bigger
 	for(int i=0; second[i] && first[i]; i++) {		
 		int letter1 = first[i];
 		int letter2 = second[i];
+		//1.2.4 we compare lower and upper case letters the same
 		if(first[i] >= 97 && first[i] <=122) {
 			letter1 -= 32;
 		}	
@@ -219,31 +225,38 @@ int compareStrings(char* first, char* second) {
 		else if(letter1 < letter2) {
 			return -1;
 		}
+		//1.2.4 That means it's the same letter
 		else {
+			//1.2.4 This means first[i] is lowercase, so second is bigger
 			if (first[i] > second[i]) {
 				return -1;
 			}
+			//1.2.4 Vice-versa
 			else if (first[i] < second[i]) {
 				return 1;
 			}
+			//1.2.4 same letter
 			else {
 				continue;
 			}
 		}
 	
 	}
+	//1.2.4 Impossible to get there as it would mean the same file name
 	return 1;
 }
 
 struct Files* sortFile(struct Files *ptr, struct Files *file) {
-	
+	//1.2.4 If the file name is smaller than the head, the file variable is the new head
 	if (compareStrings(ptr->name,file->name) == 1) {
 		file->next = ptr;
 		return file;
 	}
 
 	struct Files *head = ptr;
+	//1.2.4 Iterating through the current file names
 	while(ptr->next != NULL) {
+		//1.2.4 If the file variable name is smaller we insert it before ptr->next and after ptr
 		if (compareStrings(ptr->next->name,file->name) == 1) {
 			file->next = ptr->next;
 			ptr->next = file;
@@ -251,13 +264,15 @@ struct Files* sortFile(struct Files *ptr, struct Files *file) {
 		}
 		ptr = ptr->next;
 	}
+	//1.2.4 if it's bigger than all the file names in the linked list, we put it at the end
 	ptr->next = file;
 	file->next = NULL;
 	return head;
 }
-
+//1.2.4 Freeing the memory of the struct linked list
 void freeMemory(struct Files *head) {
 	struct Files *temp;
+	//1.2.4 iterating through the linked list
 	while (head != NULL) {
 		temp = head;
 		head = head->next;
