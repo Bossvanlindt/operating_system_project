@@ -27,16 +27,17 @@ int main(int argc, char *argv[]) {
 	
 	//init shell memory
 	mem_init();
+
 	//1.2.3 stdin is the file pointer
 	FILE *input = stdin;
 
-	while(1) {				
+	while(1) {
 		//1.2.3 if the terminal is the input file pointer we print $
 		//Compares input's file descriptor with the terminal's
 		if (isatty(fileno(input))) {
 			printf("%c ",prompt);
-			
 		}	
+
 		//1.2.3 Runs on stdin as long as it doesn't return NULL
 		//1.2.3 Happens when a file is redirected
 		if (fgets(userInput, MAX_USER_INPUT-1, input) == NULL) {
@@ -47,6 +48,33 @@ int main(int argc, char *argv[]) {
 				perror("Error from the terminal");
 				exit(1);
 			}
+			continue;
+		}
+		
+		//1.2.5 One-liner compatibility
+		//1.2.5 If userInput contains a ;, execute each command in one-liner
+		//1.2.5 strchr finds first occurence of ; in userInput, else NULL
+		if (strchr(userInput, ';') != NULL) {
+			//1.2.5 count the number of ; in userInput
+			int numOfSemiColons = 0;
+			for (int i=0; i<strlen(userInput); i++) {
+				if (userInput[i] == ';')
+					numOfSemiColons++;
+			}
+			
+			//1.2.5 only execute commands if no more than 10, else print error
+			if (numOfSemiColons <= 10) {
+				char *command = strtok(userInput, ";");
+				while (command != NULL) {
+					errorCode = parseInput(command);
+					if (errorCode == -1) exit(99);	// ignore all other errors
+					command = strtok(NULL, ";");
+				}
+			} else
+				printf("%s\n", "Bad command: Too many tokens");
+
+			//1.2.5 reset userInput and continue to next iteration so we don't try to process empty userInput
+			memset(userInput, 0, sizeof(userInput));
 			continue;
 		}
 
@@ -80,8 +108,13 @@ int parseInput(char ui[]) {
 
 		words[w] = strdup(tmp);
 
-		a++; 
 		w++;
+
+		//The bug fix published on Ed
+		if(ui[a] == '\0'){
+			break;
+		}
+		a++; 
 	}
 
 	return interpreter(words, w);
