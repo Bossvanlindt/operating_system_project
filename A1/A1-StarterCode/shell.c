@@ -55,33 +55,19 @@ int main(int argc, char *argv[]) {
 		//1.2.5 If userInput contains a ;, execute each command in one-liner
 		//1.2.5 strchr finds first occurence of ; in userInput, else NULL
 		if (strchr(userInput, ';') != NULL) {
-			//1.2.5 count the number of ; in userInput
-			int numOfSemiColons = 0;
-			for (int i=0; i<strlen(userInput); i++) {
-				if (userInput[i] == ';')
-					numOfSemiColons++;
+			char *command = strtok(userInput, ";");
+			while (command != NULL) {
+				errorCode = parseInput(command);
+				if (errorCode == -1) exit(99);	// ignore all other errors
+				command = strtok(NULL, ";");
 			}
-			
-			//1.2.5 only execute commands if no more than 10, else print error
-			if (numOfSemiColons <= 10) {
-				char *command = strtok(userInput, ";");
-				while (command != NULL) {
-					errorCode = parseInput(command);
-					if (errorCode == -1) exit(99);	// ignore all other errors
-					command = strtok(NULL, ";");
-				}
-			} else
-				printf("%s\n", "Bad command: Too many tokens");
-
-			//1.2.5 reset userInput and continue to next iteration so we don't try to process empty userInput
-			memset(userInput, 0, sizeof(userInput));
-			continue;
+		} else {
+			//1.2.5 else just process that line normally
+			errorCode = parseInput(userInput);
+			if (errorCode == -1) exit(99);	// ignore all other errors
 		}
 
-		errorCode = parseInput(userInput);
-		if (errorCode == -1) exit(99);	// ignore all other errors
 		memset(userInput, 0, sizeof(userInput));
-
 	}
 
 	return 0;

@@ -291,8 +291,19 @@ int run(char* script){
 
 	fgets(line,999,p);
 	while(1){
-		errCode = parseInput(line);	// which calls interpreter()
-		memset(line, 0, sizeof(line));
+
+		//1.2.5 if line is a one-liner with multiple chained commands, do like in main in shell.c
+		if (strchr(line, ';') != NULL) {
+			char *command = strtok(line, ";");
+			while (command != NULL) {
+				errCode = parseInput(command);
+				if (errCode == -1) exit(99);
+				command = strtok(NULL, ";");
+			}
+		} else {
+			errCode = parseInput(line);	// which calls interpreter()
+			memset(line, 0, sizeof(line));
+		}
 
 		if(feof(p)){
 			break;
