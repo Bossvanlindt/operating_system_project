@@ -198,11 +198,13 @@ int my_ls() {
 	}
 	//1.2.4 displaying all the files alphabeticallt
 	printf("%s\n",head->name);
-	while(head->next != NULL) {
-		printf("%s\n",head->next->name);
-		head = head->next;
+	file = head;
+	while(file->next != NULL) {
+		printf("%s\n",file->next->name);
+		file = file->next;
 	}
-	free(head);
+	freeMemory(head);
+	free(current_d);
 	return 0;
 }
 //1.2.4 We want lowercase letters to be put before uppercase letters
