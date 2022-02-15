@@ -101,3 +101,9 @@ char *mem_get_value(char *var_in) {
 	return "Variable does not exist";
 
 }
+
+//A2 1.2.1
+//get value based on index
+char *mem_get_value_by_index(int i) {
+	return strdup(shellmemory[i].value);
+}
