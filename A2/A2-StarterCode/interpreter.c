@@ -4,6 +4,7 @@
 #include <dirent.h>
 #include "shellmemory.h"
 #include "shell.h"
+#include "kernel.h"
 
 int MAX_ARGS_SIZE = 3;
 //1.2.1 change to 7 for 5 tokens + "set" + variable name
@@ -13,20 +14,8 @@ struct Files {
 	char name[100];
 	struct Files *next;
 };
-//2.2.1 PCB struct
-struct PCB{
-	int PID;
-	int currentLine;
-	int firstLine;
-	int lastLine;
-};
-//2.2.1 ready queue
-struct ReadyQueue {
-	struct PCB *current;
-	struct PCB *next;
-};
-//2.2.1 3 process at most
-struct memory_struct shellmemory[3];
+
+
 
 
 int help();
@@ -302,56 +291,7 @@ void freeMemory(struct Files *head) {
 	}
 }
 
+//2.2.1 edited to work as a process by calling kernel function
 int run(char* script){
-	int errCode = 0;
-	char line[1000];
-	FILE *p = fopen(script,"rt");  // the program is in a file
-	int lastPos;
-
-	if(p == NULL){
-		return badcommandFileDoesNotExist();
-	}
-
-	fgets(line,999,p);
-	struct PCB *process = (struct PCB*) malloc(sizeof(struct PCB));
-	int first = mem_set_line(line);
-
-	if (first == -1) notEnoughMemory();
-	//2.2.1 Records first line of script line in shell memory
-	process->firstLine = first;
-	while(1){
-		
-		
-		/*//1.2.5 if line is a one-liner with multiple chained commands, do like in main in shell.c
-		if (strchr(line, ';') != NULL) {
-			char *command = strtok(line, ";");
-			while (command != NULL) {
-				errCode = parseInput(command);
-				if (errCode == -1) exit(99);
-				command = strtok(NULL, ";");
-			}
-		} else {
-			errCode = parseInput(line);	// which calls interpreter()
-			memset(line, 0, sizeof(line));
-		}*/
-
-		fgets(line,999,p);
-		lastPos = mem_set_line(line);
-		if (lastPos == -1) notEnoughMemory();
-
-		if(feof(p)){
-			//2.2.1 Records last index of script line
-			process->lastLine = lastPos;
-			break;
-		}
-	}
-
-    fclose(p);
-
-	addReadyQueue(process);
-	return 0;
-}
-//2.2.1 add the process to the ready queue
-void addReadyQueue(struct *PCB process) {
-	
+	return kernel(script, NULL, NULL, "FCFS");
 }

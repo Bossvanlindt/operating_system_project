@@ -7,7 +7,7 @@
 #include "shellmemory.h"
 #include "shell.h"
 
-//A2 1.2.1
+//2.2.1
 //Handles general CPU functionality of running either [the entire program from start
 //location in shell memory to the end] or [a certain number of commands]
 
