@@ -13,6 +13,20 @@ struct Files {
 	char name[100];
 	struct Files *next;
 };
+//2.2.1 PCB struct
+struct PCB{
+	int PID;
+	int currentLine;
+	int firstLine;
+	int lastLine;
+};
+//2.2.1 ready queue
+struct ReadyQueue {
+	struct PCB *current;
+	struct PCB *next;
+};
+//2.2.1 3 process at most
+struct memory_struct shellmemory[3];
 
 
 int help();
@@ -30,6 +44,8 @@ int run(char* script);
 int badcommandFileDoesNotExist();
 //1.2.1 error if too many tokens
 int badcommandTooManyTokens();
+//2.2.1 error if memory full
+int notEnoughMemory();
 
 
 
@@ -128,6 +144,10 @@ int badcommandFileDoesNotExist(){
 int badcommandTooManyTokens(){
 	printf("%s\n", "Bad command: Too many tokens");
 	return 4;
+}
+
+int notEnoughMemory() {
+	printf("%s\n", "Not enough memory");
 }
 
 //1.2.1 changed function arguments and adapted for up to 5 tokens
@@ -286,15 +306,23 @@ int run(char* script){
 	int errCode = 0;
 	char line[1000];
 	FILE *p = fopen(script,"rt");  // the program is in a file
+	int lastPos;
 
 	if(p == NULL){
 		return badcommandFileDoesNotExist();
 	}
 
 	fgets(line,999,p);
-	while(1){
+	struct PCB *process = (struct PCB*) malloc(sizeof(struct PCB));
+	int first = mem_set_line(line);
 
-		//1.2.5 if line is a one-liner with multiple chained commands, do like in main in shell.c
+	if (first == -1) notEnoughMemory();
+	//2.2.1 Records first line of script line in shell memory
+	process->firstLine = first;
+	while(1){
+		
+		
+		/*//1.2.5 if line is a one-liner with multiple chained commands, do like in main in shell.c
 		if (strchr(line, ';') != NULL) {
 			char *command = strtok(line, ";");
 			while (command != NULL) {
@@ -305,15 +333,25 @@ int run(char* script){
 		} else {
 			errCode = parseInput(line);	// which calls interpreter()
 			memset(line, 0, sizeof(line));
-		}
+		}*/
+
+		fgets(line,999,p);
+		lastPos = mem_set_line(line);
+		if (lastPos == -1) notEnoughMemory();
 
 		if(feof(p)){
+			//2.2.1 Records last index of script line
+			process->lastLine = lastPos;
 			break;
 		}
-		fgets(line,999,p);
 	}
 
     fclose(p);
 
-	return errCode;
+	addReadyQueue(process);
+	return 0;
+}
+//2.2.1 add the process to the ready queue
+void addReadyQueue(struct *PCB process) {
+	
 }

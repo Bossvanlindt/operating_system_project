@@ -46,7 +46,6 @@ void mem_init(){
 
 // Set key value pair
 void mem_set_value(char *var_in, char *value_in) {
-	
 	int i;
 
 	for (i=0; i<1000; i++){
@@ -68,6 +67,26 @@ void mem_set_value(char *var_in, char *value_in) {
 	return;
 
 }
+
+//2.2.1 saves script in memory
+int mem_set_line(char *scriptCode) {
+	int i;
+
+	//Value does not exist, need to find a free spot.
+	for (i=0; i<1000; i++){
+		if (strcmp(shellmemory[i].var, "none") == 0){
+			shellmemory[i].var = "";
+			shellmemory[i].value = strdup(scriptCode);
+			//Returns position in memory
+			return i;
+		} 
+	}
+	//Error no more memory
+	return -1;
+
+}
+
+
 
 //get value based on input key
 char *mem_get_value(char *var_in) {
