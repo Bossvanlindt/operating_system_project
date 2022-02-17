@@ -33,8 +33,7 @@ int run(char* script);
 int badcommandFileDoesNotExist();
 //1.2.1 error if too many tokens
 int badcommandTooManyTokens();
-//2.2.1 error if memory full
-int notEnoughMemory();
+
 
 
 
@@ -133,10 +132,6 @@ int badcommandFileDoesNotExist(){
 int badcommandTooManyTokens(){
 	printf("%s\n", "Bad command: Too many tokens");
 	return 4;
-}
-
-int notEnoughMemory() {
-	printf("%s\n", "Not enough memory");
 }
 
 //1.2.1 changed function arguments and adapted for up to 5 tokens
