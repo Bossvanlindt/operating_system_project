@@ -107,3 +107,10 @@ char *mem_get_value(char *var_in) {
 char *mem_get_value_by_index(int i) {
 	return strdup(shellmemory[i].value);
 }
+
+int clearMemory(int beginning,int end) {
+	for(int i = beginning; i<=end; i++) {
+		shellmemory[i].value = "none";
+		shellmemory[i].var = "none";
+	}
+}
