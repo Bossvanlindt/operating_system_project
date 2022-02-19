@@ -90,12 +90,16 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 	}
 
 	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
-	process_file(file1);
-	if (file2)
-		process_file(file2);
-	if (file3)
-		process_file(file3);
-
+	errorCode = process_file(file1);
+	if (errorCode) return errorCode;
+	if (file2) {
+		errorCode = process_file(file2);
+		if (errorCode) return errorCode;
+	}
+	if (file3){
+		errorCode = process_file(file3);
+		if (errorCode) return errorCode;
+	}
 	//Run the program based on the selected scheduling policy (need to do policy checks in interpreter's exec command)
 	if (strcmp(policy, "FCFS") == 0)
 		errorCode = FCFS();
@@ -119,7 +123,9 @@ int process_file(char *file) {
 	//Save whole file's program to shell memory and get its location
 	//If we run out of memory, save_to_memory handles that and exits back into the mysh shell for user to retry
 	int *first_last = malloc(2*sizeof(int));	//NOTE: not sure if this pointer stuff is correct
-	save_to_memory(file, first_last);
+	errorCode = save_to_memory(file, first_last);
+
+	if(errorCode) return errorCode;
 
 	//Set up PCB for that program
 	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
@@ -151,14 +157,14 @@ int* save_to_memory(char *file, int *first_last) {
 	//Record start location
 	fgets(line,999,p);
 	int first = mem_set_line(line);
-	if (first == -1) notEnoughMemory(); 
+	if (first == -1) return notEnoughMemory(); 
 	first_last[0] = first;
 	
 	//Add whole program to shell memory
 	while(1) {
 		fgets(line,999,p);
 		position = mem_set_line(line);
-		if (position == -1) notEnoughMemory(); 
+		if (position == -1) return notEnoughMemory(); 
 
 		if(feof(p)){
 			//Record  index of last script line
