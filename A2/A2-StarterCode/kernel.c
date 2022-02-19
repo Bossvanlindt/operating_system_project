@@ -39,40 +39,27 @@ struct ReadyQueue {
 	struct PCB *head;
 	struct PCB *tail;
 };
-//Only queue actions are pop & add
-void add_to_queue(struct PCB *pcb, struct ReadyQueue *queue) {
-	if (!queue->head) {
-		queue->head = pcb;
-		queue->tail = pcb;
-	} else {
-		queue->tail->next = pcb;
-		queue->tail = pcb;
-	}
-}
-struct PCB* pop_off_queue(struct ReadyQueue *queue) {
-	//If last to pop, set head to NULL
-	if (queue->head) {
-		struct PCB *res = queue->head;
-		queue->head = res->next;
-		return res;
-	}
-	return NULL;
-}
+
+
+
+//Global vars
+struct ReadyQueue *queue;
 
 
 
 int kernel(char *file1, char *file2, char *file3, char *policy);
 int* save_to_memory(char *file, int *first_last);
-int process_file(char *file, struct ReadyQueue *queue);
-void add_to_queue(struct PCB *pcb, struct ReadyQueue *queue);
+int process_file(char *file);
+void add_to_queue(struct PCB *pcb);
+struct PCB* pop_off_queue();
 void clear_prog(int start_location, int end_location);
 int notEnoughMemory();
 int sameFileNames();
 //List of policies
-int FCFS(struct ReadyQueue *queue);
-// int SJF(struct ReadyQueue *queue);
-// int RR(struct ReadyQueue *queue);
-// int AGING(struct ReadyQueue *queue);
+int FCFS();
+// int SJF();
+// int RR();
+// int AGING();
 
 
 
@@ -80,6 +67,11 @@ int FCFS(struct ReadyQueue *queue);
 //Returns 0 if all went well
 //Returns -1 if something went wrong
 int kernel(char *file1, char *file2, char *file3, char *policy) {
+	//ReadyQueue instantiation
+	queue = malloc(sizeof(struct ReadyQueue));
+	queue->head = NULL;
+	queue->tail = NULL;
+
     int errorCode = 0;
 	
 	//Input checking of files
@@ -97,21 +89,16 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 			return sameFileNames();
 	}
 
-	//ReadyQueue instantiation
-	struct ReadyQueue *queue = malloc(sizeof(struct ReadyQueue));
-	queue->head = NULL;
-	queue->tail = NULL;
-
 	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
-	process_file(file1, queue);
+	process_file(file1);
 	if (file2)
-		process_file(file2, queue);
+		process_file(file2);
 	if (file3)
-		process_file(file3, queue);
+		process_file(file3);
 
 	//Run the program based on the selected scheduling policy (need to do policy checks in interpreter's exec command)
 	if (strcmp(policy, "FCFS") == 0)
-		errorCode = FCFS(queue);
+		errorCode = FCFS();
 	// else if (strcmp(policy, "SJF") == 0)
 	// 	errorCode = SJF(queue);
 	// else if (strcmp(policy, "RR") == 0)
@@ -125,7 +112,7 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 
 
 //Stores file's code to shell memory, creates PCB, and 
-int process_file(char *file, struct ReadyQueue *queue) {
+int process_file(char *file) {
 
 	int errorCode = 0;
 
@@ -143,7 +130,7 @@ int process_file(char *file, struct ReadyQueue *queue) {
 	//TODO: Need to set PID, how do we go about this? Just increment a counter?
 	
 	//Add it to ready queue as it's good to go
-	add_to_queue(pcb, queue);
+	add_to_queue(pcb);
 
 	return errorCode;
 }
@@ -187,24 +174,50 @@ int* save_to_memory(char *file, int *first_last) {
 
 
 //SCHEDULING POLICIES
-int FCFS(struct ReadyQueue *queue) {
+int FCFS() {
 	struct PCB *pcb;
-	while (1) {
-		pcb = pop_off_queue(queue);
+	while ((pcb = pop_off_queue())) {
 		cpu_run(pcb->start_location, pcb->end_location);
 		clear_prog(pcb->start_location, pcb->end_location);
 		free(pcb);
 	}
+	return 0;
 }
-// int SJF(struct ReadyQueue *queue);
-// int RR(struct ReadyQueue *queue);
-// int AGING(struct ReadyQueue *queue);
+// int SJF();
+// int RR();
+// int AGING();
+
+
 
 //Clear the program from memory by deleting all lines from the shell memory
 void clear_prog(int start_location, int end_location) {
 	for (int i = start_location; i < end_location; i++) 
 		return; //Need to clear memory somehow; do we just delete the contents or how do we go about this?
 }
+
+
+
+//Queue functions
+//Only queue actions are pop & add
+void add_to_queue(struct PCB *pcb) {
+	if (!queue->head) {
+		queue->head = pcb;
+		queue->tail = pcb;
+	} else {
+		queue->tail->next = pcb;
+		queue->tail = pcb;
+	}
+}
+struct PCB* pop_off_queue() {
+	//If last to pop, set head to NULL
+	if (queue->head) {
+		struct PCB *res = queue->head;
+		queue->head = res->next;
+		return res;
+	}
+	return NULL;
+}
+
 
 
 //Error messages and handling of them

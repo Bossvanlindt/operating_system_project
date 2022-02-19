@@ -15,7 +15,7 @@
 int cpu_run(int start_location, int end_location) {
     int errorCode = 0;
 
-    for (int i = start_location; i < end_location; i++) {
+    for (int i = start_location; i <= end_location; i++) {
         char *command = mem_get_value_by_index(i);
         errorCode = parseInput(command);
 		if (errorCode == -1) exit(99);
