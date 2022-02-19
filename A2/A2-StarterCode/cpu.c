@@ -20,6 +20,8 @@ int cpu_run(int start_location, int end_location) {
         errorCode = parseInput(command);
 		if (errorCode == -1) exit(99);
     }
+
+    return 0;
 }
 
 //cpu_run_lines runs certain number of lines

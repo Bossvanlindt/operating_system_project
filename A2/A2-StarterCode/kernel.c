@@ -41,16 +41,22 @@ struct ReadyQueue {
 };
 //Only queue actions are pop & add
 void add_to_queue(struct PCB *pcb, struct ReadyQueue *queue) {
-	if (!queue->head)
+	if (!queue->head) {
 		queue->head = pcb;
-	queue->tail->next = pcb;
-	queue->tail = pcb;
+		queue->tail = pcb;
+	} else {
+		queue->tail->next = pcb;
+		queue->tail = pcb;
+	}
 }
 struct PCB* pop_off_queue(struct ReadyQueue *queue) {
 	//If last to pop, set head to NULL
-	struct PCB *res = queue->head;
-	queue->head = res->next;
-	return res;
+	if (queue->head) {
+		struct PCB *res = queue->head;
+		queue->head = res->next;
+		return res;
+	}
+	return NULL;
 }
 
 
@@ -153,7 +159,7 @@ int* save_to_memory(char *file, int *first_last) {
 	//Open file containing program
 	FILE *p = fopen(file, "rt"); 
 	if(p == NULL)
-		 badcommandFileDoesNotExist();
+		badcommandFileDoesNotExist();
 
 	//Record start location
 	fgets(line,999,p);
@@ -182,8 +188,9 @@ int* save_to_memory(char *file, int *first_last) {
 
 //SCHEDULING POLICIES
 int FCFS(struct ReadyQueue *queue) {
-	while (!queue->head) {
-		struct PCB *pcb = pop_off_queue(queue);
+	struct PCB *pcb;
+	while (1) {
+		pcb = pop_off_queue(queue);
 		cpu_run(pcb->start_location, pcb->end_location);
 		clear_prog(pcb->start_location, pcb->end_location);
 		free(pcb);
