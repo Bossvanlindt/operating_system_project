@@ -48,13 +48,14 @@ struct ReadyQueue *queue;
 
 
 int kernel(char *file1, char *file2, char *file3, char *policy);
-int* save_to_memory(char *file, int *first_last);
+int save_to_memory(char *file, int *first_last);
 int process_file(char *file);
 void add_to_queue(struct PCB *pcb);
 struct PCB* pop_off_queue();
 void clear_prog(int start_location, int end_location);
 int notEnoughMemory();
 int sameFileNames();
+int invalidPolicy();
 //List of policies
 int FCFS();
 // int SJF();
@@ -73,6 +74,10 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 	queue->tail = NULL;
 
     int errorCode = 0;
+
+	//Check if a correct policy
+	if (strcmp(policy, "FCFS")!=0 && strcmp(policy, "SJF")!=0 && strcmp(policy, "RR")!=0 && strcmp(policy, "AGING")!=0)
+		return invalidPolicy();
 	
 	//Input checking of files
     //If file1 empty, no files at all so bad command
@@ -80,7 +85,7 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
         return badcommand();
 	//If any of the files are identical, wrong inputs as need to have unique for each. This works because 
 	//we always fill in file1 before file2 and file2 before file3
-	if (file1 && file2) {
+	if (file2) {
 		if (strcmp(file1, file2) == 0)
 			return sameFileNames();
 	}
@@ -125,7 +130,7 @@ int process_file(char *file) {
 	int *first_last = malloc(2*sizeof(int));	//NOTE: not sure if this pointer stuff is correct
 	errorCode = save_to_memory(file, first_last);
 
-	if(errorCode) return errorCode;
+	if (errorCode) return errorCode;
 
 	//Set up PCB for that program
 	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
@@ -143,7 +148,7 @@ int process_file(char *file) {
 
 //Saves the file's contents into shell memory
 //Returns start_location and end_location to create the PCB
-int* save_to_memory(char *file, int *first_last) {
+int save_to_memory(char *file, int *first_last) {
 
     int errCode = 0;
 	int position = -1;
@@ -166,7 +171,7 @@ int* save_to_memory(char *file, int *first_last) {
 		position = mem_set_line(line);
 		if (position == -1) return notEnoughMemory(); 
 
-		if(feof(p)){
+		if (feof(p)){
 			//Record  index of last script line
 			first_last[1] = position;
 			break;
@@ -235,4 +240,8 @@ int notEnoughMemory() {
 int sameFileNames() {
 	printf("%s\n", "Same file inputted twice"); 
 	return 6;
+}
+int invalidPolicy() {
+	printf("%s\n", "Invalid policy (need FCFS, SJF, RR, AGING)");
+	return 7;
 }

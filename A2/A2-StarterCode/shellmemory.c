@@ -103,12 +103,12 @@ char *mem_get_value(char *var_in) {
 }
 
 //2.2.1
-//get value based on index
+//Get value based on index
 char *mem_get_value_by_index(int i) {
 	return strdup(shellmemory[i].value);
 }
-
-int clearMemory(int beginning,int end) {
+//Clear shell memory of the saved programs when using exec
+void clearMemory(int beginning, int end) {
 	for(int i = beginning; i<=end; i++) {
 		shellmemory[i].value = "none";
 		shellmemory[i].var = "none";

@@ -9,6 +9,8 @@
 int MAX_ARGS_SIZE = 3;
 //1.2.1 change to 7 for 5 tokens + "set" + variable name
 int MAX_SET_SIZE = 7;
+//2.2.2 set size so we can run max three programs
+int MAX_EXEC_SIZE = 5;
 //1.2.4 file struct linked list
 struct Files {
 	char name[100];
@@ -23,6 +25,8 @@ int quit();
 int badcommand();
 //1.2.1 changed argument to char* values[] and int values_size
 int set(char* var, char* values[], int values_size);
+//2.2.2 exec command
+int exec(char* progs[], char* policy);
 int echo(char* var);
 int print(char* var);
 int my_ls();
@@ -42,15 +46,17 @@ int badcommandTooManyTokens();
 int interpreter(char* command_args[], int args_size){
 	int i;
 
-	//1.2.1 adapt to make it work with special set tokens
+	//1.2.1 & 2.2.2 adapt to make it work with special set tokens
 	if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
 		if (strcmp(command_args[0], "set")==0){
 			if (args_size > MAX_SET_SIZE)
 				return badcommandTooManyTokens();
+		} else if (strcmp(command_args[0], "exec")==0) {
+			if (args_size > MAX_EXEC_SIZE)
+				return badcommand();
 		} else
 			return badcommand();
 	}
-
 
 	for ( i=0; i<args_size; i++){ //strip spaces new line etc
 		command_args[i][strcspn(command_args[i], "\r\n")] = 0;
@@ -72,9 +78,8 @@ int interpreter(char* command_args[], int args_size){
 		if (args_size > 7) return badcommandTooManyTokens();
 		//1.2.1 Store all arguments at indices 2 or greater in an array
 		char* to_store[args_size-2];
-		for (i=2; i<args_size; i++){
+		for (i=2; i < args_size; i++)
 			to_store[i-2] = command_args[i];
-		}
 		return set(command_args[1], to_store, args_size-2);
 	
 	} else if(strcmp(command_args[0], "echo") == 0) {
@@ -95,6 +100,14 @@ int interpreter(char* command_args[], int args_size){
 		if (args_size != 2) return badcommand();
 		return run(command_args[1]);
 	
+	//2.2.2 Implement exec command
+	} else if (strcmp(command_args[0], "exec")==0) {
+		if (args_size > 5) return badcommand();
+		char* to_store[3] = {NULL, NULL, NULL};
+		for (int i = 1; i < args_size-1; i++)
+			to_store[i-1] = command_args[i];
+		return exec(to_store, command_args[args_size-1]);
+
 	} else return badcommand();
 }
 
@@ -107,6 +120,7 @@ set VAR STRING		Assigns a value to shell memory\n \
 echo $VAR/STRING	Displays the STRING assigned to VAR or displays the STRING\n \
 print VAR		Displays the STRING assigned to VAR\n \
 my_ls			Displays the files and directories in the current directory \n \
+exec P1 P2 P3 POLICY   Executes up to three programs following a scheduling policy \n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
 	return 0;
@@ -287,6 +301,11 @@ void freeMemory(struct Files *head) {
 }
 
 //2.2.1 edited to work as a process by calling kernel function
-int run(char* script){
+int run(char* script) {
 	return kernel(script, NULL, NULL, "FCFS");
+}
+
+//2.2.2 exec function
+int exec(char* progs[], char* policy) {
+	return kernel(progs[0], progs[1], progs[2], policy);
 }
