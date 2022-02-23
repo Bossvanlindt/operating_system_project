@@ -29,10 +29,12 @@ struct PCB {
 	int PID;
 	int start_location;
 	int end_location;
+	int size;
 	//To know where the process is when going back to it after switching
 	int current_location;
 	//Queue stuff
 	struct PCB *next;
+
 };
 //Ready queue
 struct ReadyQueue {
@@ -43,22 +45,21 @@ struct ReadyQueue {
 
 
 //Global vars
-struct ReadyQueue *queue;
+struct ReadyQueue queue = {.head = NULL, .tail = NULL};
+int counter = 0;
 
 
 
 int kernel(char *file1, char *file2, char *file3, char *policy);
 int save_to_memory(char *file, int *first_last);
-int process_file(char *file);
-void add_to_queue(struct PCB *pcb);
+int process_file(char *file,char* policy);
+void add_to_queue(struct PCB *pcb, char* policy);
 struct PCB* pop_off_queue();
 void clear_prog(int start_location, int end_location);
 int notEnoughMemory();
 int sameFileNames();
-int invalidPolicy();
 //List of policies
-int FCFS();
-// int SJF();
+int FCFS_SJF();
 // int RR();
 // int AGING();
 
@@ -68,48 +69,35 @@ int FCFS();
 //Returns 0 if all went well
 //Returns -1 if something went wrong
 int kernel(char *file1, char *file2, char *file3, char *policy) {
-	//ReadyQueue instantiation
-	queue = malloc(sizeof(struct ReadyQueue));
-	queue->head = NULL;
-	queue->tail = NULL;
 
     int errorCode = 0;
-
-	//Check if a correct policy
-	if (strcmp(policy, "FCFS")!=0 && strcmp(policy, "SJF")!=0 && strcmp(policy, "RR")!=0 && strcmp(policy, "AGING")!=0)
-		return invalidPolicy();
 	
 	//Input checking of files
     //If file1 empty, no files at all so bad command
+	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
     if (!file1)
         return badcommand();
+	else {
+		errorCode = process_file(file1,policy);
+		if (errorCode) return errorCode;
+	}
 	//If any of the files are identical, wrong inputs as need to have unique for each. This works because 
 	//we always fill in file1 before file2 and file2 before file3
-	if (file2) {
-		if (strcmp(file1, file2) == 0)
-			return sameFileNames();
+	if (file1 && file2) {
+		if (strcmp(file1, file2) == 0) return sameFileNames();
+		errorCode = process_file(file2,policy);
+		if (errorCode) return errorCode;
+			
 	}
 	if (file3) {
-		if (strcmp(file1, file3) == 0 || strcmp(file2, file3) == 0)
-			return sameFileNames();
+		if (strcmp(file1, file3) == 0 || strcmp(file2, file3) == 0) return sameFileNames();
+		errorCode = process_file(file3,policy);
+		if (errorCode) return errorCode;
 	}
 
-	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
-	errorCode = process_file(file1);
-	if (errorCode) return errorCode;
-	if (file2) {
-		errorCode = process_file(file2);
-		if (errorCode) return errorCode;
-	}
-	if (file3){
-		errorCode = process_file(file3);
-		if (errorCode) return errorCode;
-	}
 	//Run the program based on the selected scheduling policy (need to do policy checks in interpreter's exec command)
-	if (strcmp(policy, "FCFS") == 0)
-		errorCode = FCFS();
-	// else if (strcmp(policy, "SJF") == 0)
-	// 	errorCode = SJF(queue);
+	if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0)
+		errorCode = FCFS_SJF();
 	// else if (strcmp(policy, "RR") == 0)
 	// 	errorCode = RR(queue);
 	// else
@@ -121,7 +109,7 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 
 
 //Stores file's code to shell memory, creates PCB, and 
-int process_file(char *file) {
+int process_file(char *file, char *policy) {
 
 	int errorCode = 0;
 
@@ -130,7 +118,7 @@ int process_file(char *file) {
 	int *first_last = malloc(2*sizeof(int));	//NOTE: not sure if this pointer stuff is correct
 	errorCode = save_to_memory(file, first_last);
 
-	if (errorCode) return errorCode;
+	if(errorCode) return errorCode;
 
 	//Set up PCB for that program
 	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
@@ -138,16 +126,17 @@ int process_file(char *file) {
 	pcb->end_location = first_last[1];
 	pcb->current_location = 0; 
 	pcb->next = NULL;
-	//TODO: Need to set PID, how do we go about this? Just increment a counter?
+	pcb->PID = counter++;
+	pcb->size = pcb->end_location - pcb->start_location + 1;
+	
 	
 	//Add it to ready queue as it's good to go
-	add_to_queue(pcb);
+	add_to_queue(pcb, policy);
 
 	return errorCode;
 }
 
 //Saves the file's contents into shell memory
-//Returns start_location and end_location to create the PCB
 int save_to_memory(char *file, int *first_last) {
 
     int errCode = 0;
@@ -171,7 +160,7 @@ int save_to_memory(char *file, int *first_last) {
 		position = mem_set_line(line);
 		if (position == -1) return notEnoughMemory(); 
 
-		if (feof(p)){
+		if(feof(p)){
 			//Record  index of last script line
 			first_last[1] = position;
 			break;
@@ -185,7 +174,7 @@ int save_to_memory(char *file, int *first_last) {
 
 
 //SCHEDULING POLICIES
-int FCFS() {
+int FCFS_SJF() {
 	struct PCB *pcb;
 	while ((pcb = pop_off_queue())) {
 		cpu_run(pcb->start_location, pcb->end_location);
@@ -194,7 +183,6 @@ int FCFS() {
 	}
 	return 0;
 }
-// int SJF();
 // int RR();
 // int AGING();
 
@@ -210,20 +198,46 @@ void clear_prog(int start_location, int end_location) {
 
 //Queue functions
 //Only queue actions are pop & add
-void add_to_queue(struct PCB *pcb) {
-	if (!queue->head) {
-		queue->head = pcb;
-		queue->tail = pcb;
-	} else {
-		queue->tail->next = pcb;
-		queue->tail = pcb;
+void add_to_queue(struct PCB *pcb,char *policy) {
+	//If it's the first element, it's the head and tail
+	if (!queue.head) {
+		queue.head = pcb;
+		queue.tail = pcb;
 	}
+	else {
+		if (strcmp(policy,"SJF") == 0) {
+			//If it's SJF policy, we put the pcb at the right place in the queue
+			struct PCB *head = queue.head; 
+
+			if(pcb->size < head->size) {
+				pcb->next = head;
+				queue.head = pcb;
+				return;
+			}
+			while(head->next) {
+				if(pcb->size < head->next->size) {
+					pcb->next = head->next;
+					head->next = pcb;
+					return;
+				}
+				head = head->next;
+			}
+		}
+
+		//New tail
+		queue.tail->next = pcb;
+		queue.tail = pcb;
+	} 
+	
+	
+	
 }
+
 struct PCB* pop_off_queue() {
 	//If last to pop, set head to NULL
-	if (queue->head) {
-		struct PCB *res = queue->head;
-		queue->head = res->next;
+	if (queue.head) {
+		struct PCB *res = queue.head;
+		queue.head = res->next;
 		return res;
 	}
 	return NULL;
@@ -240,8 +254,4 @@ int notEnoughMemory() {
 int sameFileNames() {
 	printf("%s\n", "Same file inputted twice"); 
 	return 6;
-}
-int invalidPolicy() {
-	printf("%s\n", "Invalid policy (need FCFS, SJF, RR, AGING)");
-	return 7;
 }
