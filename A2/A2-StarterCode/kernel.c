@@ -55,7 +55,6 @@ int save_to_memory(char *file, int *first_last);
 int process_file(char *file,char* policy);
 void add_to_queue(struct PCB *pcb, char* policy);
 struct PCB* pop_off_queue();
-void clear_prog(int start_location, int end_location);
 int notEnoughMemory();
 int sameFileNames();
 //List of policies
@@ -175,7 +174,7 @@ int FCFS_SJF() {
 	struct PCB *pcb;
 	while ((pcb = pop_off_queue())) {
 		cpu_run(pcb->start_location, pcb->end_location);
-		clear_prog(pcb->start_location, pcb->end_location);
+		clearMemory(pcb->start_location, pcb->end_location);
 		free(pcb);
 	}
 	return 0;
@@ -188,22 +187,16 @@ int RR() {
 		//If not done processing file, add it back into the queue
 		if (cur_location != -1) {
 			pcb->current_location = cur_location;
+			pcb->next = NULL;
 			add_to_queue(pcb, "");
 		} else {
+			clearMemory(pcb->start_location, pcb->end_location);
 			free(pcb);
 		}
 	}
 	return 0;
 }
 // int AGING();
-
-
-
-//Clear the program from memory by deleting all lines from the shell memory
-void clear_prog(int start_location, int end_location) {
-	for (int i = start_location; i < end_location; i++) 
-		return; //Need to clear memory somehow; do we just delete the contents or how do we go about this?
-}
 
 
 
@@ -259,7 +252,7 @@ struct PCB* pop_off_queue() {
 //Error messages and handling of them
 int notEnoughMemory() {
 	printf("%s\n", "Not enough memory"); 
-	//TODO: clear shell memory and the PCB queues and PCBs here
+	//TODO: clear shell memory and the PCB queues and PCBs here (using clearMemory)
 	return 5;
 }
 int sameFileNames() {

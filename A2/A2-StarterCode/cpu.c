@@ -14,9 +14,10 @@
 //cpu_run default function 
 int cpu_run(int start_location, int end_location) {
     int errorCode = 0;
+    char *command;
 
     for (int i = start_location; i <= end_location; i++) {
-        char *command = mem_get_value_by_index(i);
+        command = mem_get_value_by_index(i);
         errorCode = parseInput(command);
 		if (errorCode == -1) exit(99);
     }
@@ -29,12 +30,13 @@ int cpu_run(int start_location, int end_location) {
 //Returns -1 if we're done executing this program
 int cpu_run_lines(int current_location, int end_location, int num_lines) {
     int errorCode = 0;
+    char *command;
 
     for (int i = current_location, j = 0; j < num_lines; i++, j++) {
         if (i == end_location)
             return -1;
 
-        char *command = mem_get_value_by_index(i);
+        command = mem_get_value_by_index(i);
         errorCode = parseInput(command);
 		if (errorCode == -1) exit(99);
     }
