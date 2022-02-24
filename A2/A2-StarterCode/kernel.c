@@ -30,7 +30,7 @@ struct PCB {
 	int start_location;
 	int end_location;
 	int size;
-	//To know where the process is when going back to it after switching
+	//To know where the process is when going back to it after switching (used in RR)
 	int current_location;
 	//Queue stuff
 	struct PCB *next;
@@ -60,7 +60,7 @@ int notEnoughMemory();
 int sameFileNames();
 //List of policies
 int FCFS_SJF();
-// int RR();
+int RR();
 // int AGING();
 
 
@@ -77,29 +77,27 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
     if (!file1)
         return badcommand();
-	else {
-		errorCode = process_file(file1,policy);
-		if (errorCode) return errorCode;
-	}
+	errorCode = process_file(file1, policy);
+	if (errorCode) return errorCode;
+
 	//If any of the files are identical, wrong inputs as need to have unique for each. This works because 
 	//we always fill in file1 before file2 and file2 before file3
 	if (file1 && file2) {
 		if (strcmp(file1, file2) == 0) return sameFileNames();
-		errorCode = process_file(file2,policy);
+		errorCode = process_file(file2, policy);
 		if (errorCode) return errorCode;
-			
 	}
 	if (file3) {
 		if (strcmp(file1, file3) == 0 || strcmp(file2, file3) == 0) return sameFileNames();
-		errorCode = process_file(file3,policy);
+		errorCode = process_file(file3, policy);
 		if (errorCode) return errorCode;
 	}
 
 	//Run the program based on the selected scheduling policy (need to do policy checks in interpreter's exec command)
 	if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0)
 		errorCode = FCFS_SJF();
-	// else if (strcmp(policy, "RR") == 0)
-	// 	errorCode = RR(queue);
+	else if (strcmp(policy, "RR") == 0)
+		errorCode = RR();
 	// else
 	// 	errorCode = AGING(queue);
 
@@ -124,11 +122,10 @@ int process_file(char *file, char *policy) {
 	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
 	pcb->start_location = first_last[0];
 	pcb->end_location = first_last[1];
-	pcb->current_location = 0; 
+	pcb->current_location = pcb->start_location; 
 	pcb->next = NULL;
 	pcb->PID = counter++;
 	pcb->size = pcb->end_location - pcb->start_location + 1;
-	
 	
 	//Add it to ready queue as it's good to go
 	add_to_queue(pcb, policy);
@@ -183,7 +180,21 @@ int FCFS_SJF() {
 	}
 	return 0;
 }
-// int RR();
+int RR() {
+	struct PCB *pcb;
+	int cur_location = -1;
+	while ((pcb = pop_off_queue())) {
+		cur_location = cpu_run_lines(pcb->current_location, pcb->end_location, 2);
+		//If not done processing file, add it back into the queue
+		if (cur_location != -1) {
+			pcb->current_location = cur_location;
+			add_to_queue(pcb, "");
+		} else {
+			free(pcb);
+		}
+	}
+	return 0;
+}
 // int AGING();
 
 
@@ -214,7 +225,7 @@ void add_to_queue(struct PCB *pcb,char *policy) {
 				queue.head = pcb;
 				return;
 			}
-			while(head->next) {
+			while (head->next) {
 				if(pcb->size < head->next->size) {
 					pcb->next = head->next;
 					head->next = pcb;
