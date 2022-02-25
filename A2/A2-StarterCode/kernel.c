@@ -136,7 +136,6 @@ int process_file(char *file, char *policy) {
 int save_to_memory(char *file, int *first_last) {
 
     int errCode = 0;
-	int position = -1;
 	char line[1000];
 
 	//Open file containing program
@@ -146,21 +145,24 @@ int save_to_memory(char *file, int *first_last) {
 
 	//Record start location
 	fgets(line,999,p);
-	int first = mem_set_line(line);
-	if (first == -1) return notEnoughMemory(); 
-	first_last[0] = first;
+	int position = mem_set_line(line);
+	if (position == -1) return notEnoughMemory(); 
+	first_last[0] = position;
 	
 	//Add whole program to shell memory
 	while(1) {
-		fgets(line,999,p);
-		position = mem_set_line(line);
-		if (position == -1) return notEnoughMemory(); 
 
 		if(feof(p)){
 			//Record  index of last script line
 			first_last[1] = position;
 			break;
 		}
+
+		fgets(line,999,p);
+		position = mem_set_line(line);
+		if (position == -1) return notEnoughMemory(); 
+
+		
 	}
 
     fclose(p);
