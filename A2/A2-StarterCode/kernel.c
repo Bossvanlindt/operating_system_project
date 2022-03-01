@@ -34,8 +34,6 @@ struct PCB {
 	int current_location;
 	//Queue stuff
 	struct PCB *next;
-
-
 };
 //Ready queue
 struct ReadyQueue {
@@ -166,7 +164,6 @@ int save_to_memory(char *file, int *first_last) {
 		position = mem_set_line(line);
 		if (position == -1) return notEnoughMemory(); 
 
-		
 	}
 
     fclose(p);
@@ -214,38 +211,45 @@ int AGING() {
 		//Update current location if not reached the end yet
 		if (cur_location != -1) {
 			pcb->current_location = cur_location;
+			//Pop and push to queue in sorted manner if next one is smaller
+			if (pcb->size > pcb->next->size) {
+				pop_off_queue();
+				add_to_queue(pcb, "AGING");
+			}
 		} else {
-			//getting rid of the pcb if it's done
+			//Getting rid of the pcb if it's done
 			pop_off_queue();
 			clearMemory(pcb->start_location, pcb->end_location);
 			free(pcb);
-		}	
-		pcb = lowest_Score();
-	}
-}
-
-struct PCB* lowest_score() {
-	struct PCB *lowest_pcb = queue.head;
-	struct PCB *pcb = queue.head->next;
-
-	//Compares sizes aka job scores and returns the pcb with the lowest one
-	while (pcb) {
-		if (pcb->size < lowest_pcb) {
-			lowest_pcb = pcb;
 		}
-		pcb = pcb->next;
+		pcb = queue.head;
 	}
 
-	return pcb;
+	return 0;
 }
+
+// struct PCB* lowest_score() {
+// 	struct PCB *cur = queue.head;
+// 	struct PCB *min_pcb = NULL;
+// 	int min = 1000;
+
+// 	while (cur) {
+// 		if (cur->size < min) {
+// 			min = cur->size;
+// 			min_pcb = cur;
+// 		}
+// 		cur = cur->next;
+// 	}
+
+// 	return min_pcb;
+// }
 
 void decrease_score() {
-	struct PCB *pcb = queue.head->next;
-	while(pcb) {
-		if (pcb->size) pcb->size--;
-		pcb = pcb->next;
+	struct PCB *cur = queue.head->next;
+	while (cur) {
+		if (cur->size > 0) cur->size--;
+		cur = cur->next;
 	}
-
 }
 
 //Queue functions
