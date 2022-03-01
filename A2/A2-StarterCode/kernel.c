@@ -35,6 +35,7 @@ struct PCB {
 	//Queue stuff
 	struct PCB *next;
 
+
 };
 //Ready queue
 struct ReadyQueue {
@@ -55,12 +56,14 @@ int save_to_memory(char *file, int *first_last);
 int process_file(char *file,char* policy);
 void add_to_queue(struct PCB *pcb, char* policy);
 struct PCB* pop_off_queue();
+void decrease_score();
+struct PCB* lowest_score();
 int notEnoughMemory();
 int sameFileNames();
 //List of policies
 int FCFS_SJF();
 int RR();
-// int AGING();
+int AGING();
 
 
 
@@ -97,8 +100,9 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 		errorCode = FCFS_SJF();
 	else if (strcmp(policy, "RR") == 0)
 		errorCode = RR();
-	// else
-	// 	errorCode = AGING(queue);
+	else if (strcmp(policy, "AGING") == 0)
+		errorCode = AGING(queue);
+	else return badcommand();
 
 	return errorCode;
 }
@@ -181,6 +185,7 @@ int FCFS_SJF() {
 	}
 	return 0;
 }
+
 int RR() {
 	struct PCB *pcb;
 	int cur_location = -1;
@@ -198,9 +203,50 @@ int RR() {
 	}
 	return 0;
 }
-// int AGING();
 
+int AGING() {
+	struct PCB *pcb = queue.head;
+	int cur_location = -1;
 
+	while (pcb) {
+		cur_location = cpu_run_lines(pcb->current_location, pcb->end_location, 1);
+		decrease_score();
+		//Update current location if not reached the end yet
+		if (cur_location != -1) {
+			pcb->current_location = cur_location;
+		} else {
+			//getting rid of the pcb if it's done
+			pop_off_queue();
+			clearMemory(pcb->start_location, pcb->end_location);
+			free(pcb);
+		}	
+		pcb = lowest_Score();
+	}
+}
+
+struct PCB* lowest_score() {
+	struct PCB *lowest_pcb = queue.head;
+	struct PCB *pcb = queue.head->next;
+
+	//Compares sizes aka job scores and returns the pcb with the lowest one
+	while (pcb) {
+		if (pcb->size < lowest_pcb) {
+			lowest_pcb = pcb;
+		}
+		pcb = pcb->next;
+	}
+
+	return pcb;
+}
+
+void decrease_score() {
+	struct PCB *pcb = queue.head->next;
+	while(pcb) {
+		if (pcb->size) pcb->size--;
+		pcb = pcb->next;
+	}
+
+}
 
 //Queue functions
 //Only queue actions are pop & add
@@ -211,7 +257,7 @@ void add_to_queue(struct PCB *pcb,char *policy) {
 		queue.tail = pcb;
 	}
 	else {
-		if (strcmp(policy,"SJF") == 0) {
+		if (strcmp(policy,"SJF") == 0 || strcmp(policy,"AGING") == 0) {
 			//If it's SJF policy, we put the pcb at the right place in the queue
 			struct PCB *head = queue.head; 
 
