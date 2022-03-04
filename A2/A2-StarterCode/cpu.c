@@ -33,12 +33,12 @@ int cpu_run_lines(int current_location, int end_location, int num_lines) {
     char *command;
 
     for (int i = current_location, j = 0; j < num_lines; i++, j++) {
-        if (i == end_location)
-            return -1;
-
         command = mem_get_value_by_index(i);
         errorCode = parseInput(command);
 		if (errorCode == -1) exit(99);
+
+        if (i == end_location)
+            return -1;
     }
 
     return current_location + num_lines;

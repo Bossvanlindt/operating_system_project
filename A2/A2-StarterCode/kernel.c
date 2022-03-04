@@ -55,7 +55,7 @@ int process_file(char *file,char* policy);
 void add_to_queue(struct PCB *pcb, char* policy);
 struct PCB* pop_off_queue();
 void decrease_score();
-struct PCB* lowest_score();
+void lowest_score();
 int notEnoughMemory();
 int sameFileNames();
 //List of policies
@@ -74,25 +74,34 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 	
 	//Input checking of files
     //If file1 empty, no files at all so bad command
-	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
     if (!file1)
         return badcommand();
-	errorCode = process_file(file1, policy);
-	if (errorCode) return errorCode;
+	
 
 	//If any of the files are identical, wrong inputs as need to have unique for each. This works because 
 	//we always fill in file1 before file2 and file2 before file3
 	if (file1 && file2) {
 		if (strcmp(file1, file2) == 0) return sameFileNames();
+	}
+	if (file3) {
+		if (strcmp(file1, file3) == 0 || strcmp(file2, file3) == 0) return sameFileNames();
+	}
+
+
+	//processing files
+	//Add all programs to shell memory, create their PCBs, and add them to the ready queue
+	errorCode = process_file(file1, policy);
+	if (errorCode) return errorCode;
+
+	if (file2) {
 		errorCode = process_file(file2, policy);
 		if (errorCode) return errorCode;
 	}
 	if (file3) {
-		if (strcmp(file1, file3) == 0 || strcmp(file2, file3) == 0) return sameFileNames();
 		errorCode = process_file(file3, policy);
 		if (errorCode) return errorCode;
 	}
-
+	
 	//Run the program based on the selected scheduling policy (need to do policy checks in interpreter's exec command)
 	if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0)
 		errorCode = FCFS_SJF();
@@ -202,49 +211,62 @@ int RR() {
 }
 
 int AGING() {
-	struct PCB *pcb = queue.head;
+	struct PCB *pcb = NULL;
 	int cur_location = -1;
 
-	while (pcb) {
-		cur_location = cpu_run_lines(pcb->current_location, pcb->end_location, 1);
+	while (queue.head) {
+		cur_location = cpu_run_lines(queue.head->current_location, queue.head->end_location, 1);
 		decrease_score();
 		//Update current location if not reached the end yet
 		if (cur_location != -1) {
-			pcb->current_location = cur_location;
-			//Pop and push to queue in sorted manner if next one is smaller
-			if (pcb->size > pcb->next->size) {
-				pop_off_queue();
-				add_to_queue(pcb, "AGING");
-			}
+			queue.head->current_location = cur_location;
+		
 		} else {
 			//Getting rid of the pcb if it's done
-			pop_off_queue();
+			pcb = pop_off_queue();
 			clearMemory(pcb->start_location, pcb->end_location);
 			free(pcb);
 		}
-		pcb = queue.head;
+		//Decreasing score
+		if(queue.head) lowest_score();
 	}
 
 	return 0;
 }
 
-// struct PCB* lowest_score() {
-// 	struct PCB *cur = queue.head;
-// 	struct PCB *min_pcb = NULL;
-// 	int min = 1000;
+void lowest_score() {
+ 	struct PCB *cur = queue.head;
+ 	struct PCB *min_pcb = queue.head;
+	struct PCB *previous_min = NULL;
+	struct PCB *previous = NULL;
+ 	int min = queue.head->size;
 
-// 	while (cur) {
-// 		if (cur->size < min) {
-// 			min = cur->size;
-// 			min_pcb = cur;
-// 		}
-// 		cur = cur->next;
-// 	}
+	//Until there's no pcb
+ 	while (cur) {
+		 //Getting the minimum score
+ 		if (cur->size < min) {
+ 			min = cur->size;
+ 			min_pcb = cur;
+			previous_min = previous;
+ 		}
+		previous = cur;
+ 		cur = cur->next;
+		
+ 	}
 
-// 	return min_pcb;
-// }
+	if(min_pcb != queue.head) {
+		//Rearranging queue list
+		previous_min->next = min_pcb->next;
+		struct PCB *old_head = pop_off_queue();
+		add_to_queue(old_head,"");
+
+		min_pcb->next = queue.head;
+		queue.head = min_pcb;
+	}
+ }
 
 void decrease_score() {
+	//Decreasing every score except head
 	struct PCB *cur = queue.head->next;
 	while (cur) {
 		if (cur->size > 0) cur->size--;
@@ -283,6 +305,7 @@ void add_to_queue(struct PCB *pcb,char *policy) {
 		//New tail
 		queue.tail->next = pcb;
 		queue.tail = pcb;
+		queue.tail->next = NULL;
 	} 
 	
 	
