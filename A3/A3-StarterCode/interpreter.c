@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h> 
 #include <dirent.h>
+#include <unistd.h>
 #include "shellmemory.h"
 #include "shell.h"
 #include "kernel.h"
@@ -127,6 +128,19 @@ run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 }
 
 int quit(){
+
+	DIR* dir = opendir("backingStore");
+	struct dirent *d;
+	char filename[300];
+
+	//Remove all files in backing store
+	while ((d = readdir(dir)) != NULL ) {
+		sprintf(filename,"./backingStore/%s",d->d_name);
+		remove(filename);	
+	}
+	//Delete folder
+	rmdir("./backingStore");
+
 	printf("%s\n", "Bye!");
 	exit(0);
 }

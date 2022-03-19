@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h> 
 #include <unistd.h>
-
+#include <dirent.h>
+#include <sys/stat.h>
 #include "interpreter.h"
 #include "shellmemory.h"
 
@@ -26,6 +27,27 @@ int main(int argc, char *argv[]) {
 	
 	//init shell memory
 	mem_init();
+
+	
+	//Creating backing store
+	DIR* dir = opendir("backingStore");
+	struct dirent *d;
+	char filename[300];
+
+	//If directory exists, then remove all current files in it
+	if (dir) {
+		while ((d = readdir(dir)) != NULL ) {
+
+			sprintf(filename,"./backingStore/%s",d->d_name);
+			remove(filename);	
+		}
+	}
+	else {
+		if (mkdir("./backingStore",0777)) {
+			printf("Couldn't create backing store directory");
+			exit(1);
+		}
+	}
 
 	//1.2.3 stdin is the file pointer
 	FILE *input = stdin;
