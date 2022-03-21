@@ -37,9 +37,11 @@ int main(int argc, char *argv[]) {
 	//If directory exists, then remove all current files in it
 	if (dir) {
 		while ((d = readdir(dir)) != NULL ) {
-
-			sprintf(filename,"./backingStore/%s",d->d_name);
-			remove(filename);	
+			//Make file path
+			char path[] = "./backingStore/";
+			strcat(path,d->d_name);
+			//remove it
+			remove(path);	
 		}
 	}
 	else {
