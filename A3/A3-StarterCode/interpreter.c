@@ -30,6 +30,7 @@ int set(char* var, char* values[], int values_size);
 int exec(char* progs[], char* policy);
 int echo(char* var);
 int print(char* var);
+int resetmem();
 int my_ls();
 int compareStrings(char* first, char* second);
 struct Files* sortFile(struct Files *ptr, struct Files *file);
@@ -93,6 +94,10 @@ int interpreter(char* command_args[], int args_size){
 		if (args_size != 2) return badcommand();
 		return print(command_args[1]);
 	
+	} else if (strcmp(command_args[0], "resetmem")==0) {
+		if (args_size != 1) return badcommand();
+		return resetmem();
+	
 	} else if (strcmp(command_args[0], "my_ls") == 0) {
 		if (args_size != 1) return badcommand();
 		return my_ls();
@@ -120,6 +125,7 @@ quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
 echo $VAR/STRING	Displays the STRING assigned to VAR or displays the STRING\n \
 print VAR		Displays the STRING assigned to VAR\n \
+resetmem		clears all variables\n \
 my_ls			Displays the files and directories in the current directory \n \
 exec P1 P2 P3 POLICY   Executes up to three programs following a scheduling policy \n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
@@ -194,6 +200,12 @@ int print(char* var){
 	printf("%s\n", mem_get_value_variable(var)); 
 	return 0;
 }
+
+int resetmem() {
+	resetVariables();
+	return 0;
+}
+
 
 int my_ls() {
 
