@@ -173,7 +173,7 @@ int set(char* var, char* values[], int values_size){
 		strcat(value, " ");
 	}
 
-	mem_set_value(var, value);
+	mem_set_value_variable(var, value);
 
 	return 0;
 
@@ -191,7 +191,7 @@ int echo(char *var) {
 }
 
 int print(char* var){
-	printf("%s\n", mem_get_value(var)); 
+	printf("%s\n", mem_get_value_variable(var)); 
 	return 0;
 }
 

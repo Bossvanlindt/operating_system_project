@@ -8,7 +8,8 @@ struct memory_struct{
 	char *value;
 };
 
-struct memory_struct shellmemory[1000];
+struct memory_struct framestore[900];
+struct memory_struct variablestore[100];
 
 // Helper functions
 int match(char *model, char *var) {
@@ -38,28 +39,34 @@ char *extract(char *model) {
 void mem_init(){
 
 	int i;
-	for (i=0; i<1000; i++){		
-		shellmemory[i].var = "none";
-		shellmemory[i].value = "none";
+	for (i=0; i<900; i++){		
+		if (i<100) {
+			variablestore[i].var = "none";
+			variablestore[i].value = "none";
+		}
+		
+		framestore[i].var = "none";
+		framestore[i].value = "none";
 	}
+
 }
 
 // Set key value pair
-void mem_set_value(char *var_in, char *value_in) {
+void mem_set_value_variable(char *var_in, char *value_in) {
 	int i;
 
 	for (i=0; i<1000; i++){
-		if (strcmp(shellmemory[i].var, var_in) == 0){
-			shellmemory[i].value = strdup(value_in);
+		if (strcmp(variablestore[i].var, var_in) == 0){
+			variablestore[i].value = strdup(value_in);
 			return;
 		} 
 	}
 
 	//Value does not exist, need to find a free spot.
 	for (i=0; i<1000; i++){
-		if (strcmp(shellmemory[i].var, "none") == 0){
-			shellmemory[i].var = strdup(var_in);
-			shellmemory[i].value = strdup(value_in);
+		if (strcmp(variablestore[i].var, "none") == 0){
+			variablestore[i].var = strdup(var_in);
+			variablestore[i].value = strdup(value_in);
 			return;
 		} 
 	}
@@ -74,9 +81,9 @@ int mem_set_line(char *scriptCode) {
 
 	//Value does not exist, need to find a free spot.
 	for (i=0; i<1000; i++){
-		if (strcmp(shellmemory[i].var, "none") == 0){
-			shellmemory[i].var = "";
-			shellmemory[i].value = strdup(scriptCode);
+		if (strcmp(framestore[i].var, "none") == 0){
+			framestore[i].var = "";
+			framestore[i].value = strdup(scriptCode);
 			//Returns position in memory
 			return i;
 		} 
@@ -89,13 +96,13 @@ int mem_set_line(char *scriptCode) {
 
 
 //get value based on input key
-char *mem_get_value(char *var_in) {
+char *mem_get_value_variable(char *var_in) {
 	int i;
 
 	for (i=0; i<1000; i++){
-		if (strcmp(shellmemory[i].var, var_in) == 0){
+		if (strcmp(variablestore[i].var, var_in) == 0){
 
-			return strdup(shellmemory[i].value);
+			return strdup(variablestore[i].value);
 		} 
 	}
 	return "Variable does not exist";
@@ -105,12 +112,19 @@ char *mem_get_value(char *var_in) {
 //2.2.1
 //Get value based on index
 char *mem_get_value_by_index(int i) {
-	return strdup(shellmemory[i].value);
+	return strdup(framestore[i].value);
 }
 //Clear shell memory of the saved programs when using exec
-void clearMemory(int beginning, int end) {
+void clearMemoryLines(int beginning, int end) {
 	for(int i = beginning; i<=end; i++) {
-		shellmemory[i].value = "none";
-		shellmemory[i].var = "none";
+		framestore[i].value = "none";
+		framestore[i].var = "none";
+	}
+}
+//Resets variables
+void resetVariables() {
+	for(int i = 0; i<100; i++) {
+		variablestore[i].value = "none";
+		variablestore[i].var = "none";
 	}
 }

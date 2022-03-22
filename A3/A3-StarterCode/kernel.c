@@ -186,7 +186,7 @@ int FCFS_SJF() {
 	struct PCB *pcb;
 	while ((pcb = pop_off_queue())) {
 		cpu_run(pcb->start_location, pcb->end_location);
-		clearMemory(pcb->start_location, pcb->end_location);
+		clearMemoryLines(pcb->start_location, pcb->end_location);
 		free(pcb);
 	}
 	return 0;
@@ -203,7 +203,7 @@ int RR() {
 			pcb->next = NULL;
 			add_to_queue(pcb, "");
 		} else {
-			clearMemory(pcb->start_location, pcb->end_location);
+			clearMemoryLines(pcb->start_location, pcb->end_location);
 			free(pcb);
 		}
 	}
@@ -224,7 +224,7 @@ int AGING() {
 		} else {
 			//Getting rid of the pcb if it's done
 			pcb = pop_off_queue();
-			clearMemory(pcb->start_location, pcb->end_location);
+			clearMemoryLines(pcb->start_location, pcb->end_location);
 			free(pcb);
 		}
 		//Decreasing score
