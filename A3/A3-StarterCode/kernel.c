@@ -62,7 +62,8 @@ int sameFileNames();
 int FCFS_SJF();
 int RR();
 int AGING();
-
+//A3 functions
+int RR_a3(char* file1, char* file2, char* file3);
 
 
 //kernel method handles all kernel logic
@@ -71,7 +72,15 @@ int AGING();
 int kernel(char *file1, char *file2, char *file3, char *policy) {
 
     int errorCode = 0;
+
+
+	//A3 delegate all work for RR to RR_a3 function
+	if(strcmp(policy, "RR") == 0) {
+		errorCode = RR_a3(file1, file2, file3);
+		return errorCode;
+	}
 	
+
 	//Input checking of files
     //If file1 empty, no files at all so bad command
     if (!file1)
@@ -333,4 +342,56 @@ int notEnoughMemory() {
 int sameFileNames() {
 	printf("%s\n", "Same file inputted twice"); 
 	return 6;
+}
+
+
+//A3 functions
+int RR_a3(char* file1, char* file2, char* file3) {
+
+	//Overview
+	//1. Copy each file to the backingStore directory
+	//2. Create a PCB for each file, which now also comes with file, pagetable, cur_page, offset
+	//3. Add each PCB to the queue (necessary for round robin)
+	//4. Run just like RR above but based on paging and handling of page faults
+
+	struct PCB *pcb = NULL;
+
+	//Preliminary check that at least 1 file exists
+	if (file1 == NULL) 
+		badcommandFileDoesNotExist();
+
+	//1. copying, 2. creating PCBs, 3. adding to queue are all done together for each file
+	copy_to_backingStore(file1, "1");
+	return 0;
+	pcb = create_PCB(file1);
+	add_to_queue(queue.head, "RR");
+	load_to_framestore(pcb);
+}
+
+void copy_to_backingstore(char *file, char *fileName) {
+	//Copies the file from the current directory to the backingStore directory
+	//fileName must be given so we can run the same prog multiple times
+	FILE *newFile = fopen(strcat("backingStore/", fileName), "w");
+	FILE *oldFile = fopen(file, "r");
+	char c;
+	while ((c = fgetc(oldFile)) != EOF) {
+		fputc(c, newFile);
+	}
+	fclose(newFile);
+	fclose(oldFile);
+}
+
+struct PCB* create_PCB(char *file) {
+	//Creates a PCB for the given file
+	//Returns a pointer to the PCB
+	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
+	pcb->file = file;
+	pcb->pagetable = malloc(sizeof(int) * (get_file_size(file) / PAGE_SIZE + 1));
+	pcb->cur_page = 0;
+	pcb->offset = 0;
+	pcb->size = get_file_size(file);
+	pcb->start_location = 0;
+	pcb->end_location = 0;
+	pcb->next = NULL;
+	return pcb;
 }
