@@ -8,8 +8,8 @@ struct memory_struct{
 	char *value;
 };
 
-struct memory_struct framestore[900];
-struct memory_struct variablestore[100];
+struct memory_struct framestore[framesize];
+struct memory_struct variablestore[varmemsize];
 
 // Helper functions
 int match(char *model, char *var) {
