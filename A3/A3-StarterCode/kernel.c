@@ -34,6 +34,12 @@ struct PCB {
 	int current_location;
 	//Queue stuff
 	struct PCB *next;
+	//A3 stuff
+	FILE* file;
+	int line_number;
+	int pagetable[framestore/3];
+	int cur_page;
+	int offset;
 };
 //Ready queue
 struct ReadyQueue {
@@ -64,6 +70,11 @@ int RR();
 int AGING();
 //A3 functions
 int RR_a3(char* file1, char* file2, char* file3);
+void handle_page_fault(struct PCB* pcb);
+void process_files(char* file1, char* file2, char* file3);
+void copy_to_backingstore(char* file, char* fileName);
+struct PCB* create_PCB(char* file);
+void load_to_framestore(struct PCB* pcb);
 
 
 //kernel method handles all kernel logic
@@ -354,17 +365,72 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	//4. Start off by loading two frames per file into framestore
 	//5. Run just like RR above but based on paging and handling of page faults
 
+	//Steps 1 2 3 4
+	process_files(file1, file2, file3);
+
+	//5. Run just like RR above but based on paging and handling of page faults
+	struct PCB *pcb;
+	char* command;
+	int cur_location = -1;
+	while ((pcb = pop_off_queue())) {
+		//Get 2 lines
+		for (int i = 0; i < 2; i++) {
+			// Handle page fault if any
+			if (pcb->pagetable[pcb->cur_page] != -1) {
+				handle_page_fault(pcb);
+			}
+
+			//Process line
+			command = mem_get_value_by_index(pcb->pagetable[pcb->cur_page]*3 + pcb->offset);
+			//TODO: SOMEHOW MARK THAT WE'RE DONE WITH THAT FILE (EOF)
+
+			//Update pcb pointers
+			//If end of that page, go to next
+			if (pcb->offset == 2) {
+				pcb->cur_page += 1;
+				pcb->offset = 0;
+			} else {
+				pcb->offset++;
+			}
+
+		}
+		
+		//If not done processing file, add it back into the queue
+		//TODO: CONDITION FOR WHEN TO FINISH THAT PCB NEEDS TO BE DECIDED ON (HOW TO KNOW IF EOF)
+		if () {
+			pcb->next = NULL;
+			add_to_queue(pcb, "");
+		} else {
+			clearMemoryLines_rr(pcb);
+			free(pcb);
+		}
+	}
+
+	return 0;
+}
+
+void process_files(char* file1, char* file2, char* file3) {
 	struct PCB *pcb = NULL;
 
-	//Preliminary check that at least 1 file exists
-	if (file1 == NULL) 
-		badcommandFileDoesNotExist();
-
-	//1. copying, 2. creating PCBs, 3. adding to queue are all done together for each file
+	//TODO: CHECK THAT FILE ALREADY IN DIR, IF SO ALTER NAME SLIGHTLY
 	copy_to_backingStore(file1, "1");
 	pcb = create_PCB(file1);
 	add_to_queue(queue.head, "RR");
+	//Loads 2 frames for that file
 	load_to_framestore(pcb);
+
+	if (file2 != NULL) {
+		copy_to_backingStore(file2, "2");
+		pcb = create_PCB(file1);
+		add_to_queue(queue.head, "RR");
+		load_to_framestore(pcb);
+	}
+	if (file3 != NULL) {
+		copy_to_backingStore(file3, "3");
+		pcb = create_PCB(file1);
+		add_to_queue(queue.head, "RR");
+		load_to_framestore(pcb);
+	}
 }
 
 void copy_to_backingstore(char *file, char *fileName) {
@@ -380,11 +446,20 @@ void copy_to_backingstore(char *file, char *fileName) {
 	fclose(oldFile);
 }
 
+void process_files(char* file1, char* file2, char* file3) {
+
+}
+
+void load_to_framestore(struct PCB* pcb) {
+	
+}
+
 struct PCB* create_PCB(char *file) {
 	//Creates a PCB for the given file
 	//Returns a pointer to the PCB
 	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
 	pcb->file = file;
+	pcb->line_number = 0;
 	pcb->pagetable = malloc(sizeof(int) * (get_file_size(file) / PAGE_SIZE + 1));
 	pcb->cur_page = 0;
 	pcb->offset = 0;
@@ -393,4 +468,8 @@ struct PCB* create_PCB(char *file) {
 	pcb->end_location = 0;
 	pcb->next = NULL;
 	return pcb;
+}
+
+void handle_page_fault(struct PCB* pcb) {
+	
 }
