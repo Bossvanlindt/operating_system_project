@@ -72,6 +72,11 @@ int RR_a3(char* file1, char* file2, char* file3);
 int kernel(char *file1, char *file2, char *file3, char *policy) {
 
     int errorCode = 0;
+	
+	//Input checking of files
+    //If file1 empty, no files at all so bad command
+    if (!file1)
+        return badcommand();
 
 
 	//A3 delegate all work for RR to RR_a3 function
@@ -79,12 +84,6 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 		errorCode = RR_a3(file1, file2, file3);
 		return errorCode;
 	}
-	
-
-	//Input checking of files
-    //If file1 empty, no files at all so bad command
-    if (!file1)
-        return badcommand();
 	
 
 	//If any of the files are identical, wrong inputs as need to have unique for each. This works because 
@@ -350,9 +349,10 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 	//Overview
 	//1. Copy each file to the backingStore directory
-	//2. Create a PCB for each file, which now also comes with file, pagetable, cur_page, offset
+	//2. Create a PCB for each file, comes with file, line_number, pagetable, cur_page, offset
 	//3. Add each PCB to the queue (necessary for round robin)
-	//4. Run just like RR above but based on paging and handling of page faults
+	//4. Start off by loading two frames per file into framestore
+	//5. Run just like RR above but based on paging and handling of page faults
 
 	struct PCB *pcb = NULL;
 
@@ -362,7 +362,6 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 	//1. copying, 2. creating PCBs, 3. adding to queue are all done together for each file
 	copy_to_backingStore(file1, "1");
-	return 0;
 	pcb = create_PCB(file1);
 	add_to_queue(queue.head, "RR");
 	load_to_framestore(pcb);
