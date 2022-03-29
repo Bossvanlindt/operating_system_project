@@ -52,6 +52,7 @@ struct ReadyQueue {
 //Global vars
 struct ReadyQueue queue = {.head = NULL, .tail = NULL};
 int counter = 0;
+int counter_file_name = 0;
 
 
 
@@ -71,8 +72,8 @@ int AGING();
 //A3 functions
 int RR_a3(char* file1, char* file2, char* file3);
 void handle_page_fault(struct PCB* pcb);
-void process_files(char* file1, char* file2, char* file3);
-void copy_to_backingstore(char* file, char* fileName);
+void process_files_a3(char* file1, char* file2, char* file3);
+void copy_to_backingstore(char* file);
 struct PCB* create_PCB(char* file);
 void load_to_framestore(struct PCB* pcb);
 
@@ -409,45 +410,50 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	return 0;
 }
 
-void process_files(char* file1, char* file2, char* file3) {
+void process_files_a3(char* file1, char* file2, char* file3) {
 	struct PCB *pcb = NULL;
 
 	//TODO: CHECK THAT FILE ALREADY IN DIR, IF SO ALTER NAME SLIGHTLY
-	copy_to_backingStore(file1, "1");
+	copy_to_backingStore(file1);
 	pcb = create_PCB(file1);
 	add_to_queue(queue.head, "RR");
 	//Loads 2 frames for that file
 	load_to_framestore(pcb);
 
-	if (file2 != NULL) {
-		copy_to_backingStore(file2, "2");
+	if (file2) {
+		copy_to_backingStore(file2);
 		pcb = create_PCB(file1);
 		add_to_queue(queue.head, "RR");
 		load_to_framestore(pcb);
 	}
-	if (file3 != NULL) {
-		copy_to_backingStore(file3, "3");
+	if (file3) {
+		copy_to_backingStore(file3);
 		pcb = create_PCB(file1);
 		add_to_queue(queue.head, "RR");
 		load_to_framestore(pcb);
 	}
 }
 
-void copy_to_backingstore(char *file, char *fileName) {
+void copy_to_backingstore(char *file) {
 	//Copies the file from the current directory to the backingStore directory
 	//fileName must be given so we can run the same prog multiple times
-	FILE *newFile = fopen(strcat("backingStore/", fileName), "w");
+	char *newName = strdup(file);
+	sprintf(newName,"backingStore/%s_%d",newName,counter_file_name);
+	FILE *newFile = fopen(strcat("backingStore/", newName), "w");
 	FILE *oldFile = fopen(file, "r");
+
 	char c;
 	while ((c = fgetc(oldFile)) != EOF) {
 		fputc(c, newFile);
 	}
+
 	fclose(newFile);
 	fclose(oldFile);
+	free(newName);
 }
 
-void process_files(char* file1, char* file2, char* file3) {
-
+void process_files_a3(char* file1, char* file2, char* file3) {
+		
 }
 
 void load_to_framestore(struct PCB* pcb) {
