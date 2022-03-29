@@ -80,7 +80,7 @@ int mem_set_line(char *scriptCode) {
 	int i;
 
 	//Value does not exist, need to find a free spot.
-	for (i=0; i<1000; i++){
+	for (i=0; i<framesize; i++){
 		if (strcmp(framestore[i].var, "none") == 0){
 			framestore[i].var = "";
 			framestore[i].value = strdup(scriptCode);
@@ -89,6 +89,34 @@ int mem_set_line(char *scriptCode) {
 		} 
 	}
 	//Error no more memory
+	return -1;
+
+}
+
+void mem_set_line_by_frame(char *scriptCode, int frameNumber) {
+	int i;
+
+	//Value does not exist, need to find a free spot.
+	for (i=frameNumber*3; i<3; i++){
+		if (strcmp(framestore[i].var, "none") == 0){
+			framestore[i].var = "";
+			framestore[i].value = strdup(scriptCode);
+			
+		} 
+	}
+}
+
+
+
+//Returns first available frame
+int available_frame() {
+	int i;
+	for(i=0;i<framesize;i+3) {
+		if (strcmp(framestore[i].var, "none") == 0) {
+			return i/3;
+		}
+	}
+	//returns -1 if no frame available
 	return -1;
 
 }

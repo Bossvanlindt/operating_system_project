@@ -36,6 +36,7 @@ struct PCB {
 	struct PCB *next;
 	//A3 stuff
 	FILE* file;
+	int fileCompleted;
 	int line_number;
 	int pagetable[framestore/3];
 	int cur_page;
@@ -73,7 +74,7 @@ int AGING();
 int RR_a3(char* file1, char* file2, char* file3);
 void handle_page_fault(struct PCB* pcb);
 void process_files_a3(char* file1, char* file2, char* file3);
-void copy_to_backingstore(char* file);
+char* copy_to_backingstore(char* file, char* newName);
 struct PCB* create_PCB(char* file);
 void load_to_framestore(struct PCB* pcb);
 
@@ -412,32 +413,44 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 void process_files_a3(char* file1, char* file2, char* file3) {
 	struct PCB *pcb = NULL;
+	char *newName;
 
-	//TODO: CHECK THAT FILE ALREADY IN DIR, IF SO ALTER NAME SLIGHTLY
-	copy_to_backingStore(file1);
+	//create string that represents the new name of the file after copying it
+	newName = strdup(file1);
+	//newName updated after calling this function
+	copy_to_backingStore(file1,newName);
 	pcb = create_PCB(file1);
 	add_to_queue(queue.head, "RR");
 	//Loads 2 frames for that file
 	load_to_framestore(pcb);
+	load_to_framestore(pcb);
+	//free string so we can reuse it for the other files
+	free(newName);
 
 	if (file2) {
-		copy_to_backingStore(file2);
+		newName = strdup(file2);
+		copy_to_backingStore(file2,newName);
 		pcb = create_PCB(file1);
 		add_to_queue(queue.head, "RR");
 		load_to_framestore(pcb);
+		load_to_framestore(pcb);
+		free(newName);
 	}
 	if (file3) {
-		copy_to_backingStore(file3);
+		newName = strdup(file3);
+		copy_to_backingStore(file3,newName);
 		pcb = create_PCB(file1);
 		add_to_queue(queue.head, "RR");
+		load_to_framestore(pcb);\
 		load_to_framestore(pcb);
+		free(newName);
 	}
 }
 
-void copy_to_backingstore(char *file) {
+char* copy_to_backingstore(char *file,char *newName) {
 	//Copies the file from the current directory to the backingStore directory
 	//fileName must be given so we can run the same prog multiple times
-	char *newName = strdup(file);
+	//new filename updated
 	sprintf(newName,"backingStore/%s_%d",newName,counter_file_name);
 	FILE *newFile = fopen(strcat("backingStore/", newName), "w");
 	FILE *oldFile = fopen(file, "r");
@@ -449,22 +462,41 @@ void copy_to_backingstore(char *file) {
 
 	fclose(newFile);
 	fclose(oldFile);
-	free(newName);
-}
-
-void process_files_a3(char* file1, char* file2, char* file3) {
-		
 }
 
 void load_to_framestore(struct PCB* pcb) {
+	//Checks if file is already fully loaded
+	if(pcb->fileCompleted) return;
 	
+	int frameNumber = available_frame();
+
+	//if frameStore full, handle page fault
+	if(frameNumer = -1) {
+		handle_page_fault(pcb))
+		frameNumber = available_frame();
+	}
+
+	char line[1000];
+
+	//Loads lines and checks if it's the end of the file
+	for(int i = 0; i<3;i++) {
+		fgetc(line,999,pcb->file);
+		mem_set_line_by_frame(line,frameNumber);
+
+		if(feof(pcb->file)) {
+			pcb->fileCompleted = 1;
+			fclose(pcb->file);
+			return;
+		}
+	}
 }
 
 struct PCB* create_PCB(char *file) {
 	//Creates a PCB for the given file
 	//Returns a pointer to the PCB
 	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
-	pcb->file = file;
+	pcb->file = fopen(file,"r");
+	pcb->fileCompleted = 0;
 	pcb->line_number = 0;
 	pcb->pagetable = malloc(sizeof(int) * (get_file_size(file) / PAGE_SIZE + 1));
 	pcb->cur_page = 0;
