@@ -471,8 +471,8 @@ void load_to_framestore(struct PCB* pcb) {
 	int frameNumber = available_frame();
 
 	//if frameStore full, handle page fault
-	if(frameNumer = -1) {
-		handle_page_fault(pcb))
+	if(frameNumber = -1) {
+		handle_page_fault(pcb));
 		frameNumber = available_frame();
 	}
 
@@ -480,7 +480,7 @@ void load_to_framestore(struct PCB* pcb) {
 
 	//Loads lines and checks if it's the end of the file
 	for(int i = 0; i<3;i++) {
-		fgetc(line,999,pcb->file);
+		fget(line,999,pcb->file);
 		mem_set_line_by_frame(line,frameNumber);
 
 		if(feof(pcb->file)) {
