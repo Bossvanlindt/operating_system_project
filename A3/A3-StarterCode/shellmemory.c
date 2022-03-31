@@ -93,32 +93,36 @@ int mem_set_line(char *scriptCode) {
 
 }
 
+//Copies scriptCode into the first free line in the frame indexed at frameNumber
 void mem_set_line_by_frame(char *scriptCode, int frameNumber) {
-	int i;
-
 	//Value does not exist, need to find a free spot.
-	for (i=frameNumber*3; i<3; i++){
-		if (strcmp(framestore[i].var, "none") == 0){
+	for (int i = frameNumber*3; i < frameNumber*3 + 3; i++) {
+		if (strcmp(framestore[i].var, "none") == 0) {
 			framestore[i].var = "";
 			framestore[i].value = strdup(scriptCode);
-			
-		} 
+			return;
+		}
 	}
 }
 
-
+void free_frame(int frameNumber) {
+	framestore[frameNumber*3].var = "none";
+	framestore[frameNumber*3].value = "none";
+	framestore[frameNumber*3+1].var = "none";
+	framestore[frameNumber*3+1].value = "none";
+	framestore[frameNumber*3+2].var = "none";
+	framestore[frameNumber*3+2].value = "none";
+}
 
 //Returns first available frame
 int available_frame() {
-	int i;
-	for(i=0;i<framesize;i+3) {
+	for(int i=0; i < framesize; i += 3) {
 		if (strcmp(framestore[i].var, "none") == 0) {
 			return i/3;
 		}
 	}
 	//returns -1 if no frame available
 	return -1;
-
 }
 
 

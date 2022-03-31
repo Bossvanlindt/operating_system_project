@@ -39,6 +39,8 @@ struct PCB {
 	int fileCompleted;
 	int line_number;
 	int pagetable[framestore/3];
+	//Keeps track of the next pagetable index to fill with the next frame
+	int next_page_to_fill;
 	int cur_page;
 	int offset;
 };
@@ -72,7 +74,7 @@ int RR();
 int AGING();
 //A3 functions
 int RR_a3(char* file1, char* file2, char* file3);
-void handle_page_fault(struct PCB* pcb);
+int free_frame_via_LRU();
 void process_files_a3(char* file1, char* file2, char* file3);
 char* copy_to_backingstore(char* file, char* newName);
 struct PCB* create_PCB(char* file);
@@ -373,22 +375,32 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	//5. Run just like RR above but based on paging and handling of page faults
 	struct PCB *pcb;
 	char* command;
+	int freeFrame = -1;
 	int cur_location = -1;
 	while ((pcb = pop_off_queue())) {
-		//Get 2 lines
+		//Run two lines at a time
 		for (int i = 0; i < 2; i++) {
-			// Handle page fault if any
-			if (pcb->pagetable[pcb->cur_page] != -1) {
-				handle_page_fault(pcb);
+			// // Handle page fault, if any, by clearing a frame and loading that pcb's code to it
+			if (pcb->pagetable[pcb->cur_page] == -1) {
+				freeFrame = free_frame_via_LRU();
+				load_to_framestore(pcb);
 			}
 
 			//Process line
 			command = mem_get_value_by_index(pcb->pagetable[pcb->cur_page]*3 + pcb->offset);
-			//TODO: SOMEHOW MARK THAT WE'RE DONE WITH THAT FILE (EOF)
+			//TODO: decide on a way of handling the end and cleaning it all up. 
+
+			//Run the command (no need to call cpu_run_lines as we're just running that command and we know it's all good)
+			parseInput(command);
 
 			//Update pcb pointers
 			//If end of that page, go to next
 			if (pcb->offset == 2) {
+				//Clear info related to the current page, which is now done
+				free_frame(pcb->cur_page);
+				pcb->pagetable[pcb->cur_page] = -1;
+
+				//Go to next page
 				pcb->cur_page += 1;
 				pcb->offset = 0;
 			} else {
@@ -403,7 +415,8 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			pcb->next = NULL;
 			add_to_queue(pcb, "");
 		} else {
-			clearMemoryLines_rr(pcb);
+			//No need to clear memory lines here as that is done progressively as we finish each frame
+			// clearMemoryLines_rr(pcb);
 			free(pcb);
 		}
 	}
@@ -418,9 +431,9 @@ void process_files_a3(char* file1, char* file2, char* file3) {
 	//create string that represents the new name of the file after copying it
 	newName = strdup(file1);
 	//newName updated after calling this function
-	copy_to_backingStore(file1,newName);
-	pcb = create_PCB(file1);
-	add_to_queue(queue.head, "RR");
+	copy_to_backingStore(file1, newName);
+	pcb = create_PCB(newName);			//(Changed to newName instead of file1 as we now read from backingStore)
+	add_to_queue(pcb, "RR");			//(Changed input to pcb instead of pcb.head, I think pcb.head is incorrect)
 	//Loads 2 frames for that file
 	load_to_framestore(pcb);
 	load_to_framestore(pcb);
@@ -429,19 +442,19 @@ void process_files_a3(char* file1, char* file2, char* file3) {
 
 	if (file2) {
 		newName = strdup(file2);
-		copy_to_backingStore(file2,newName);
-		pcb = create_PCB(file1);
-		add_to_queue(queue.head, "RR");
+		copy_to_backingStore(file2, newName);
+		pcb = create_PCB(newName);
+		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
 		load_to_framestore(pcb);
 		free(newName);
 	}
 	if (file3) {
 		newName = strdup(file3);
-		copy_to_backingStore(file3,newName);
-		pcb = create_PCB(file1);
-		add_to_queue(queue.head, "RR");
-		load_to_framestore(pcb);\
+		copy_to_backingStore(file3, newName);
+		pcb = create_PCB(newName);
+		add_to_queue(pcb, "RR");
+		load_to_framestore(pcb);
 		load_to_framestore(pcb);
 		free(newName);
 	}
@@ -451,7 +464,10 @@ char* copy_to_backingstore(char *file,char *newName) {
 	//Copies the file from the current directory to the backingStore directory
 	//fileName must be given so we can run the same prog multiple times
 	//new filename updated
-	sprintf(newName,"backingStore/%s_%d",newName,counter_file_name);
+	sprintf(newName, "backingStore/%s_%d", newName, counter_file_name);
+	//Increment counter_file_name for future calls to avoid duplicate names
+	counter_file_name++;
+
 	FILE *newFile = fopen(strcat("backingStore/", newName), "w");
 	FILE *oldFile = fopen(file, "r");
 
@@ -464,24 +480,48 @@ char* copy_to_backingstore(char *file,char *newName) {
 	fclose(oldFile);
 }
 
+//Creates a PCB for the given file. Returns a pointer to the PCB
+struct PCB* create_PCB(char *file) {
+	struct PCB *pcb = malloc(sizeof(struct PCB));
+	pcb->PID = counter++;
+	pcb->next = NULL;
+	pcb->file = fopen(file, "r");
+	pcb->fileCompleted = 0;
+	pcb->line_number = 0;
+	//Initialize pagetable to all -1 as it doesn't contain any entries yet
+	for (int i = 0; i < framestore/3; i++) {
+		pcb->pagetable[i] = -1;
+	}
+	pcb->next_page_to_fill = 0;
+	pcb->cur_page = 0;
+	pcb->offset = 0;
+	//Seems like we don't need these details
+	// pcb->size = get_file_size(file);
+	// pcb->start_location = 0;
+	// pcb->end_location = 0;
+
+	return pcb;
+}
+
 void load_to_framestore(struct PCB* pcb) {
 	//Checks if file is already fully loaded
-	if(pcb->fileCompleted) return;
+	if (pcb->fileCompleted) return;
 	
 	int frameNumber = available_frame();
 
 	//if frameStore full, handle page fault
-	if(frameNumber = -1) {
-		handle_page_fault(pcb));
-		frameNumber = available_frame();
+	if (frameNumber = -1) {
+		// handle_page_fault(pcb);
+		// frameNumber = available_frame();
+		frameNumber = free_frame_via_LRU();
 	}
 
 	char line[1000];
 
 	//Loads lines and checks if it's the end of the file
-	for(int i = 0; i<3;i++) {
-		fget(line,999,pcb->file);
-		mem_set_line_by_frame(line,frameNumber);
+	for (int i = 0; i < 3; i++) {
+		fget(line, 999, pcb->file);
+		mem_set_line_by_frame(line, frameNumber);
 
 		if(feof(pcb->file)) {
 			pcb->fileCompleted = 1;
@@ -489,25 +529,14 @@ void load_to_framestore(struct PCB* pcb) {
 			return;
 		}
 	}
+
+	//Update pagetable
+	pcb->pagetable[pcb->next_page_to_fill] = frameNumber;
+	pcb->next_page_to_fill++;
 }
 
-struct PCB* create_PCB(char *file) {
-	//Creates a PCB for the given file
-	//Returns a pointer to the PCB
-	struct PCB *pcb = (struct PCB*) malloc(sizeof(struct PCB));
-	pcb->file = fopen(file,"r");
-	pcb->fileCompleted = 0;
-	pcb->line_number = 0;
-	pcb->pagetable = malloc(sizeof(int) * (get_file_size(file) / PAGE_SIZE + 1));
-	pcb->cur_page = 0;
-	pcb->offset = 0;
-	pcb->size = get_file_size(file);
-	pcb->start_location = 0;
-	pcb->end_location = 0;
-	pcb->next = NULL;
-	return pcb;
-}
 
-void handle_page_fault(struct PCB* pcb) {
+//Based on LRU, finds and clears a frame
+int free_frame_via_LRU() {
 	
 }
