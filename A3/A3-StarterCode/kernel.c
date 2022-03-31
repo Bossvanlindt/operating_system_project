@@ -380,9 +380,8 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	while ((pcb = pop_off_queue())) {
 		//Run two lines at a time
 		for (int i = 0; i < 2; i++) {
-			// // Handle page fault, if any, by clearing a frame and loading that pcb's code to it
+			// // Handle page fault by clearing a frame and loading the code to it (which is all handled by load_to_framestore)
 			if (pcb->pagetable[pcb->cur_page] == -1) {
-				freeFrame = free_frame_via_LRU();
 				load_to_framestore(pcb);
 			}
 
