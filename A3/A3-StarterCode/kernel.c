@@ -38,7 +38,7 @@ struct PCB {
 	FILE* file;
 	int fileCompleted;
 	int line_number;
-	int pagetable[framestore/3];
+	int pagetable[framesize/3];
 	//Keeps track of the next pagetable index to fill with the next frame
 	int next_page_to_fill;
 	int cur_page;
@@ -370,24 +370,33 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	//5. Run just like RR above but based on paging and handling of page faults
 
 	//Steps 1 2 3 4
-	process_files(file1, file2, file3);
+	process_files_a3(file1, file2, file3);
 
 	//5. Run just like RR above but based on paging and handling of page faults
 	struct PCB *pcb;
 	char* command;
 	int freeFrame = -1;
 	int cur_location = -1;
+	int ran_every_line;
 	while ((pcb = pop_off_queue())) {
+		//Keep track of whether we're done with every line of the file
+		//NOTE: with this approach, if correct, we would not need the PCB fileCompleted variable anymore
+		ran_every_line = 0;
+
 		//Run two lines at a time
 		for (int i = 0; i < 2; i++) {
 			// // Handle page fault by clearing a frame and loading the code to it (which is all handled by load_to_framestore)
-			if (pcb->pagetable[pcb->cur_page] == -1) {
+			if (pcb->pagetable[pcb->cur_page] == -1)
 				load_to_framestore(pcb);
-			}
 
 			//Process line
 			command = mem_get_value_by_index(pcb->pagetable[pcb->cur_page]*3 + pcb->offset);
-			//TODO: decide on a way of handling the end and cleaning it all up. 
+			//If the command is none, we're done. Skip to the end to free the pcb and proceed with the next one. 
+			//(Apparently goto is bad practice but I can't think of another way that's as simple)
+			if (strcmp(command, "none")) {
+				ran_every_line = 1;
+				goto end;
+			}
 
 			//Run the command (no need to call cpu_run_lines as we're just running that command and we know it's all good)
 			parseInput(command);
@@ -396,7 +405,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			//If end of that page, go to next
 			if (pcb->offset == 2) {
 				//Clear info related to the current page, which is now done
-				free_frame(pcb->cur_page);
+				free_frame(pcb->pagetable[pcb->cur_page]);
 				pcb->pagetable[pcb->cur_page] = -1;
 
 				//Go to next page
@@ -408,9 +417,10 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 		}
 		
+		//Skip to here if we're at the end of the file, so we don't end up trying to parseInput("none")
+		end:
 		//If not done processing file, add it back into the queue
-		//TODO: CONDITION FOR WHEN TO FINISH THAT PCB NEEDS TO BE DECIDED ON (HOW TO KNOW IF EOF)
-		if () {
+		if (ran_every_line == 0) {
 			pcb->next = NULL;
 			add_to_queue(pcb, "");
 		} else {
@@ -430,7 +440,7 @@ void process_files_a3(char* file1, char* file2, char* file3) {
 	//create string that represents the new name of the file after copying it
 	newName = strdup(file1);
 	//newName updated after calling this function
-	copy_to_backingStore(file1, newName);
+	copy_to_backingstore(file1, newName);
 	pcb = create_PCB(newName);			//(Changed to newName instead of file1 as we now read from backingStore)
 	add_to_queue(pcb, "RR");			//(Changed input to pcb instead of pcb.head, I think pcb.head is incorrect)
 	//Loads 2 frames for that file
@@ -441,7 +451,7 @@ void process_files_a3(char* file1, char* file2, char* file3) {
 
 	if (file2) {
 		newName = strdup(file2);
-		copy_to_backingStore(file2, newName);
+		copy_to_backingstore(file2, newName);
 		pcb = create_PCB(newName);
 		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
@@ -450,7 +460,7 @@ void process_files_a3(char* file1, char* file2, char* file3) {
 	}
 	if (file3) {
 		newName = strdup(file3);
-		copy_to_backingStore(file3, newName);
+		copy_to_backingstore(file3, newName);
 		pcb = create_PCB(newName);
 		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
@@ -488,7 +498,7 @@ struct PCB* create_PCB(char *file) {
 	pcb->fileCompleted = 0;
 	pcb->line_number = 0;
 	//Initialize pagetable to all -1 as it doesn't contain any entries yet
-	for (int i = 0; i < framestore/3; i++) {
+	for (int i = 0; i < framesize/3; i++) {
 		pcb->pagetable[i] = -1;
 	}
 	pcb->next_page_to_fill = 0;
@@ -509,7 +519,7 @@ void load_to_framestore(struct PCB* pcb) {
 	int frameNumber = available_frame();
 
 	//if frameStore full, handle page fault
-	if (frameNumber = -1) {
+	if (frameNumber == -1) {
 		// handle_page_fault(pcb);
 		// frameNumber = available_frame();
 		frameNumber = free_frame_via_LRU();
@@ -519,7 +529,7 @@ void load_to_framestore(struct PCB* pcb) {
 
 	//Loads lines and checks if it's the end of the file
 	for (int i = 0; i < 3; i++) {
-		fget(line, 999, pcb->file);
+		fgets(line, 999, pcb->file);
 		mem_set_line_by_frame(line, frameNumber);
 
 		if(feof(pcb->file)) {

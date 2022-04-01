@@ -8,3 +8,4 @@ int clearMemoryLines(int beginning,int end);
 void resetVariables(); 
 int available_frame();
 void mem_set_line_by_frame(char *scriptCode, int frameNumber);
+void free_frame(int frameNumber);
