@@ -50,10 +50,16 @@ struct ReadyQueue {
 	struct PCB *tail;
 };
 
+struct Frame {
+	int number;
+	struct *LRU next;
+}
+
 
 
 //Global vars
 struct ReadyQueue queue = {.head = NULL, .tail = NULL};
+struct ReadyQueue LRUqueue = {.head = NULL, .tail = NULL};
 int counter = 0;
 int counter_file_name = 0;
 
@@ -63,7 +69,7 @@ int kernel(char *file1, char *file2, char *file3, char *policy);
 int save_to_memory(char *file, int *first_last);
 int process_file(char *file,char* policy);
 void add_to_queue(struct PCB *pcb, char* policy);
-struct PCB* pop_off_queue();
+struct PCB* pop_off_queue(struct ReadyQueue queue);
 void decrease_score();
 void lowest_score();
 int notEnoughMemory();
@@ -207,7 +213,7 @@ int save_to_memory(char *file, int *first_last) {
 //SCHEDULING POLICIES
 int FCFS_SJF() {
 	struct PCB *pcb;
-	while ((pcb = pop_off_queue())) {
+	while ((pcb = pop_off_queue(queue))) {
 		cpu_run(pcb->start_location, pcb->end_location);
 		clearMemoryLines(pcb->start_location, pcb->end_location);
 		free(pcb);
@@ -218,7 +224,7 @@ int FCFS_SJF() {
 int RR() {
 	struct PCB *pcb;
 	int cur_location = -1;
-	while ((pcb = pop_off_queue())) {
+	while ((pcb = pop_off_queue(queue))) {
 		cur_location = cpu_run_lines(pcb->current_location, pcb->end_location, 2);
 		//If not done processing file, add it back into the queue
 		if (cur_location != -1) {
@@ -246,7 +252,7 @@ int AGING() {
 		
 		} else {
 			//Getting rid of the pcb if it's done
-			pcb = pop_off_queue();
+			pcb = pop_off_queue(queue);
 			clearMemoryLines(pcb->start_location, pcb->end_location);
 			free(pcb);
 		}
@@ -280,7 +286,7 @@ void lowest_score() {
 	if(min_pcb != queue.head) {
 		//Rearranging queue list
 		previous_min->next = min_pcb->next;
-		struct PCB *old_head = pop_off_queue();
+		struct PCB *old_head = pop_off_queue(queue);
 		add_to_queue(old_head,"");
 
 		min_pcb->next = queue.head;
@@ -330,12 +336,22 @@ void add_to_queue(struct PCB *pcb,char *policy) {
 		queue.tail = pcb;
 		queue.tail->next = NULL;
 	} 
-	
-	
-	
 }
 
-struct PCB* pop_off_queue() {
+void add_to_LRU_queue(struct Frame *frame) {
+	if (!queue.head) {
+		queue.head = frame;
+		queue.tail = frame;
+		return;
+	}
+	//New tail
+		queue.tail->next = frame;
+		queue.tail = frame;
+		queue.tail->next = NULL;
+
+}
+
+struct PCB* pop_off_queue(struct ReadyQueue queue) {
 	//If last to pop, set head to NULL
 	if (queue.head) {
 		struct PCB *res = queue.head;
@@ -376,7 +392,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	struct PCB *pcb;
 	char* command;
 	int ran_every_line;
-	while ((pcb = pop_off_queue())) {
+	while ((pcb = pop_off_queue(queue))) {
 		//Keep track of whether we're done with every line of the file
 		//NOTE: with this approach, if correct, we would not need the PCB fileCompleted variable anymore
 		ran_every_line = 0;
@@ -387,8 +403,10 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			//Following the directions, if there is a page fault we do not run the next line but instead push the PCB to the back of the queue
 			//and only load it into the frame. Continue with next one. 
 			if (pcb->pagetable[pcb->cur_page] == -1) {
+				//If file was completed before loading into framestore, then the process is done
+				if (pcb->fileCompleted) ran_every_line = 1;
 				load_to_framestore(pcb);
-				goto end;
+				break;
 			}
 
 			//Process line
@@ -396,7 +414,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			//If the command is none, we're done. Skip to the end to free the pcb and proceed with the next one. 
 			if (strcmp(command, "none") == 0) {
 				ran_every_line = 1;
-				goto end;
+				break;
 			}
 
 			//Run the command (no need to call cpu_run_lines as we're just running that command and we know it's all good)
@@ -405,9 +423,12 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			//Update pcb pointers
 			//If end of that page, go to next
 			if (pcb->offset == 2) {
-				//Clear info related to the current page, which is now done
-				free_frame(pcb->pagetable[pcb->cur_page]);
-				pcb->pagetable[pcb->cur_page] = -1;
+				//Create frame struct for the specific done frame 
+				struct Frame *frame = malloc(sizeof(struct Frame));
+				frame->number = pcb->pagetable[pcb->cur_page];
+
+				//add it to the queue
+				add_to_LRU_queue(frame);
 
 				//Go to next page (via modulo logic to loop around)
 				pcb->cur_page = (pcb->cur_page + 1) % (framesize/3);
@@ -419,7 +440,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 		}
 		
 		//Skip to here if we're at the end of the file, so we don't end up trying to parseInput("none")
-		end:
+		
 		//If not done processing file, add it back into the queue
 		if (ran_every_line == 0) {
 			pcb->next = NULL;
@@ -518,10 +539,10 @@ void load_to_framestore(struct PCB* pcb) {
 	
 	int frameNumber = available_frame();
 
+	
 	//if frameStore full, handle page fault
-	if (frameNumber == -1)
-		frameNumber = free_frame_via_LRU();
-
+	if (frameNumber == -1) frameNumber = free_frame_via_LRU();
+		
 	char line[1000];
 
 	//Loads lines and checks if it's the end of the file
@@ -545,5 +566,12 @@ void load_to_framestore(struct PCB* pcb) {
 
 //Based on LRU, finds and clears a frame. Returns the frame number of the cleared frame. 
 int free_frame_via_LRU() {
-	
+	//Get the first frameNumber from the queue, i.e. the LRU
+	struct Frame *frame = pop_off_queue(LRUqueue);
+	int frameNumber = frame->number;
+	//Free the frame in the memory
+	free_frame(frameNumber)
+	free(frame);
+
+	return frameNumber;
 }

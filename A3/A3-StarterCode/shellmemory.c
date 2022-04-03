@@ -106,12 +106,11 @@ void mem_set_line_by_frame(char *scriptCode, int frameNumber) {
 }
 
 void free_frame(int frameNumber) {
-	framestore[frameNumber*3].var = "none";
-	framestore[frameNumber*3].value = "none";
-	framestore[frameNumber*3+1].var = "none";
-	framestore[frameNumber*3+1].value = "none";
-	framestore[frameNumber*3+2].var = "none";
-	framestore[frameNumber*3+2].value = "none";
+	
+	for(int i=frameNumber*3;i < frameNumber*3 + 3;i++) {
+		framestore[i].var = "none";
+		framestore[i].value = "none";
+	}
 }
 
 //Returns first available frame
