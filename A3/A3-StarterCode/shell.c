@@ -17,7 +17,6 @@ int main(int argc, char *argv[]) {
 	printf("%s\n", "Shell version 1.1 Created January 2022");
 	printf("Frame Store Size = %i; Variable Store Size = %i \n", framesize, varmemsize);
 	help();
-	printf("hello");
 
 	char prompt = '$';  				// Shell prompt
 	char userInput[MAX_USER_INPUT];		// user's input stored here

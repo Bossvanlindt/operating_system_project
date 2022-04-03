@@ -393,6 +393,7 @@ int sameFileNames() {
 //A3 functions
 int RR_a3(char* file1, char* file2, char* file3) {
 
+	int errorCode = 0;
 	//Overview
 	//1. Copy each file to the backingStore directory
 	//2. Create a PCB for each file, comes with file, line_number, pagetable, cur_page, offset
@@ -433,7 +434,16 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			}
 
 			//Run the command (no need to call cpu_run_lines as we're just running that command and we know it's all good)
-			parseInput(command);
+			if (strchr(command, ';') != NULL) {
+				char *parsedCommand = strtok(command, ";");	
+				while (parsedCommand != NULL) {
+					parseInput(parsedCommand);
+					parsedCommand = strtok(NULL, ";");
+				}
+			//1.2.5 else just process that line normally
+			} else parseInput(command);
+			
+
 
 			//Update pcb pointers
 			//If end of that page, go to next
@@ -500,6 +510,7 @@ char* copy_to_backingstore(char *file) {
 	//Increment counter_file_name for future calls to avoid duplicate names
 	char str[strlen("./backingStore/") + 4];	//4 for number of digits in counter 
 	sprintf(str, "./backingStore/%d", counter);
+
 	FILE *newFile = fopen(str, "w");
 	FILE *oldFile = fopen(file, "r");
 
@@ -511,7 +522,7 @@ char* copy_to_backingstore(char *file) {
 	fclose(newFile);
 	fclose(oldFile);
 
-	return str;
+	return strdup(str);
 }
 
 //Creates a PCB for the given file. Returns a pointer to the PCB
@@ -558,7 +569,7 @@ void load_to_framestore(struct PCB* pcb) {
 		if (feof(pcb->file)) {
 			pcb->fileCompleted = 1;
 			fclose(pcb->file);
-			return;
+			break;
 		}
 	}
 
@@ -577,9 +588,9 @@ int free_frame_via_LRU() {
 
 	//Print the frame's contents
 	printf("Page fault! Victim page contents:\n");
-	printf("%s\n", mem_get_value_by_index(frameNumber*3));
-	printf("%s\n", mem_get_value_by_index(frameNumber*3+1));
-	printf("%s\n", mem_get_value_by_index(frameNumber*3+2));
+	printf("%s", mem_get_value_by_index(frameNumber*3));
+	printf("%s", mem_get_value_by_index(frameNumber*3+1));
+	printf("%s", mem_get_value_by_index(frameNumber*3+2));
 	printf("End of victim page contents.\n");
 
 	//Free the frame in the memory
