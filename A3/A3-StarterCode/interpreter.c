@@ -328,10 +328,12 @@ void freeMemory(struct Files *head) {
 
 //2.2.1 edited to work as a process by calling kernel function
 int run(char* script) {
-	return kernel(script, NULL, NULL, "FCFS");
+	//A3 - swtiched policy to RR so that we use demand paging for run command
+	return kernel(script, NULL, NULL, "RR");
 }
 
 //2.2.2 exec function
 int exec(char* progs[], char* policy) {
+	//A3 - no change needed here as RR policy is the only one that needs to be done via demand paging
 	return kernel(progs[0], progs[1], progs[2], policy);
 }

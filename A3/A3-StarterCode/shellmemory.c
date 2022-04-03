@@ -116,7 +116,7 @@ void free_frame(int frameNumber) {
 
 //Returns first available frame
 int available_frame() {
-	for(int i=0; i < framesize; i += 3) {
+	for(int i = 0; i < framesize; i += 3) {
 		if (strcmp(framestore[i].var, "none") == 0) {
 			return i/3;
 		}
