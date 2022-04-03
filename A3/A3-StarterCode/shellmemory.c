@@ -53,7 +53,7 @@ void mem_init() {
 void mem_set_value_variable(char *var_in, char *value_in) {
 	int i;
 
-	for (i=0; i<1000; i++){
+	for (i=0; i<varmemsize; i++){
 		if (strcmp(variablestore[i].var, var_in) == 0){
 			variablestore[i].value = strdup(value_in);
 			return;
@@ -61,7 +61,7 @@ void mem_set_value_variable(char *var_in, char *value_in) {
 	}
 
 	//Value does not exist, need to find a free spot.
-	for (i=0; i<1000; i++){
+	for (i=0; i<varmemsize; i++){
 		if (strcmp(variablestore[i].var, "none") == 0){
 			variablestore[i].var = strdup(var_in);
 			variablestore[i].value = strdup(value_in);
@@ -128,7 +128,7 @@ int available_frame() {
 char *mem_get_value_variable(char *var_in) {
 	int i;
 
-	for (i=0; i<1000; i++){
+	for (i=0; i<varmemsize; i++){
 		if (strcmp(variablestore[i].var, var_in) == 0){
 
 			return strdup(variablestore[i].value);
@@ -152,7 +152,7 @@ void clearMemoryLines(int beginning, int end) {
 }
 //Resets variables
 void resetVariables() {
-	for(int i = 0; i<100; i++) {
+	for(int i = 0; i<varmemsize; i++) {
 		variablestore[i].value = "none";
 		variablestore[i].var = "none";
 	}
