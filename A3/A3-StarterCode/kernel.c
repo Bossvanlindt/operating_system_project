@@ -87,7 +87,7 @@ int AGING();
 int RR_a3(char* file1, char* file2, char* file3);
 int free_frame_via_LRU();
 void process_files_a3(char* file1, char* file2, char* file3);
-char* copy_to_backingstore(char* file, char* newName);
+void copy_to_backingstore(char* file, char* newName);
 struct PCB* create_PCB(char* file);
 void load_to_framestore(struct PCB* pcb);
 
@@ -470,38 +470,45 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 void process_files_a3(char* file1, char* file2, char* file3) {
 	struct PCB *pcb = NULL;
-	char *newName;
+	char* newName;
 
 	//create string that represents the new name of the file after copying it
+	newName = malloc(strlen(file1) + 1); 
+	strcpy(newName, file1);
 	newName = strdup(file1);
 	//newName updated after calling this function
-	newName = copy_to_backingstore(file1, newName);
+	copy_to_backingstore(file1, newName);
 	pcb = create_PCB(newName);			//(Changed to newName instead of file1 as we now read from backingStore)
 	add_to_queue(pcb, "RR");			//(Changed input to pcb instead of pcb.head, I think pcb.head is incorrect)
 	//Loads 2 frames for that file
 	load_to_framestore(pcb);
 	load_to_framestore(pcb);
 	//We never malloc'd newName so I removed the free(newName) line
+	free(newName);
 
 	if (file2) {
-		newName = strdup(file2);
-		newName = copy_to_backingstore(file2, newName);
+		newName = malloc(strlen(file2) + 1); 
+		strcpy(newName, file2);
+		copy_to_backingstore(file2, newName);
 		pcb = create_PCB(newName);
 		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
 		load_to_framestore(pcb);
+		free(newName);
 	}
 	if (file3) {
-		newName = strdup(file3);
-		newName = copy_to_backingstore(file3, newName);
+		newName = malloc(strlen(file3) + 1);
+		strcpy(newName, file3);
+		copy_to_backingstore(file3, newName);
 		pcb = create_PCB(newName);
 		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
 		load_to_framestore(pcb);
+		free(newName);
 	}
 }
 
-char* copy_to_backingstore(char *file,char *newName) {
+void copy_to_backingstore(char *file,char *newName) {
 	//Copies the file from the current directory to the backingStore directory
 	//fileName must be given so we can run the same prog multiple times
 	//new filename updated
@@ -519,8 +526,6 @@ char* copy_to_backingstore(char *file,char *newName) {
 
 	fclose(newFile);
 	fclose(oldFile);
-
-	return newName;
 }
 
 //Creates a PCB for the given file. Returns a pointer to the PCB
