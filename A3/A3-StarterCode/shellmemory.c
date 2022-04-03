@@ -36,19 +36,17 @@ char *extract(char *model) {
 
 // Shell memory functions
 
-void mem_init(){
+void mem_init() {
+	for (int i = 0; i < varmemsize; i++) {
+		variablestore[i].var = "none";
+		variablestore[i].value = "none";
+	}
 
-	int i;
-	for (i=0; i<900; i++){		
-		if (i<100) {
-			variablestore[i].var = "none";
-			variablestore[i].value = "none";
-		}
-		
+	for (int i = 0; i < framesize; i++) {		
 		framestore[i].var = "none";
 		framestore[i].value = "none";
 	}
-
+	
 }
 
 // Set key value pair
