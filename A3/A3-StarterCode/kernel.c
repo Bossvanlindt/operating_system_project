@@ -87,7 +87,7 @@ int AGING();
 int RR_a3(char* file1, char* file2, char* file3);
 int free_frame_via_LRU();
 void process_files_a3(char* file1, char* file2, char* file3);
-void copy_to_backingstore(char* file, char* newName);
+char* copy_to_backingstore(char* file);
 struct PCB* create_PCB(char* file);
 void load_to_framestore(struct PCB* pcb);
 
@@ -470,53 +470,37 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 void process_files_a3(char* file1, char* file2, char* file3) {
 	struct PCB *pcb = NULL;
-	char* newName;
+	char *str;
 
-	//create string that represents the new name of the file after copying it
-	newName = malloc(strlen(file1) + 1); 
-	strcpy(newName, file1);
-	newName = strdup(file1);
 	//newName updated after calling this function
-	copy_to_backingstore(file1, newName);
-	pcb = create_PCB(newName);			//(Changed to newName instead of file1 as we now read from backingStore)
+	str = copy_to_backingstore(file1);
+	pcb = create_PCB(str);			//(Changed to newName instead of file1 as we now read from backingStore)
 	add_to_queue(pcb, "RR");			//(Changed input to pcb instead of pcb.head, I think pcb.head is incorrect)
 	//Loads 2 frames for that file
 	load_to_framestore(pcb);
 	load_to_framestore(pcb);
-	//We never malloc'd newName so I removed the free(newName) line
-	free(newName);
 
 	if (file2) {
-		newName = malloc(strlen(file2) + 1); 
-		strcpy(newName, file2);
-		copy_to_backingstore(file2, newName);
-		pcb = create_PCB(newName);
+		str = copy_to_backingstore(file2);
+		pcb = create_PCB(str);
 		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
 		load_to_framestore(pcb);
-		free(newName);
 	}
 	if (file3) {
-		newName = malloc(strlen(file3) + 1);
-		strcpy(newName, file3);
-		copy_to_backingstore(file3, newName);
-		pcb = create_PCB(newName);
+		str = copy_to_backingstore(file3);
+		pcb = create_PCB(str);
 		add_to_queue(pcb, "RR");
 		load_to_framestore(pcb);
 		load_to_framestore(pcb);
-		free(newName);
 	}
 }
 
-void copy_to_backingstore(char *file,char *newName) {
-	//Copies the file from the current directory to the backingStore directory
-	//fileName must be given so we can run the same prog multiple times
-	//new filename updated
-	sprintf(newName, "backingStore/%s_%d", newName, counter_file_name);
+char* copy_to_backingstore(char *file) {	
 	//Increment counter_file_name for future calls to avoid duplicate names
-	counter_file_name++;
-
-	FILE *newFile = fopen(strcat("backingStore/", newName), "w");
+	char str[strlen("./backingStore/") + 4];	//4 for number of digits in counter 
+	sprintf(str, "./backingStore/%d", counter);
+	FILE *newFile = fopen(str, "w");
 	FILE *oldFile = fopen(file, "r");
 
 	char c;
@@ -526,6 +510,8 @@ void copy_to_backingstore(char *file,char *newName) {
 
 	fclose(newFile);
 	fclose(oldFile);
+
+	return str;
 }
 
 //Creates a PCB for the given file. Returns a pointer to the PCB
