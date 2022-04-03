@@ -52,14 +52,18 @@ struct ReadyQueue {
 
 struct Frame {
 	int number;
-	struct *LRU next;
-}
+	struct Frame* next;
+};
+struct FrameReadyQueue {
+	struct Frame *head;
+	struct Frame *tail;
+};
 
 
 
 //Global vars
 struct ReadyQueue queue = {.head = NULL, .tail = NULL};
-struct ReadyQueue LRUqueue = {.head = NULL, .tail = NULL};
+struct FrameReadyQueue LRUqueue = {.head = NULL, .tail = NULL};
 int counter = 0;
 int counter_file_name = 0;
 
@@ -69,7 +73,8 @@ int kernel(char *file1, char *file2, char *file3, char *policy);
 int save_to_memory(char *file, int *first_last);
 int process_file(char *file,char* policy);
 void add_to_queue(struct PCB *pcb, char* policy);
-struct PCB* pop_off_queue(struct ReadyQueue queue);
+struct PCB* pop_off_queue();
+struct Frame* pop_off_queue_LRU();
 void decrease_score();
 void lowest_score();
 int notEnoughMemory();
@@ -213,7 +218,7 @@ int save_to_memory(char *file, int *first_last) {
 //SCHEDULING POLICIES
 int FCFS_SJF() {
 	struct PCB *pcb;
-	while ((pcb = pop_off_queue(queue))) {
+	while ((pcb = pop_off_queue())) {
 		cpu_run(pcb->start_location, pcb->end_location);
 		clearMemoryLines(pcb->start_location, pcb->end_location);
 		free(pcb);
@@ -224,7 +229,7 @@ int FCFS_SJF() {
 int RR() {
 	struct PCB *pcb;
 	int cur_location = -1;
-	while ((pcb = pop_off_queue(queue))) {
+	while ((pcb = pop_off_queue())) {
 		cur_location = cpu_run_lines(pcb->current_location, pcb->end_location, 2);
 		//If not done processing file, add it back into the queue
 		if (cur_location != -1) {
@@ -252,7 +257,7 @@ int AGING() {
 		
 		} else {
 			//Getting rid of the pcb if it's done
-			pcb = pop_off_queue(queue);
+			pcb = pop_off_queue();
 			clearMemoryLines(pcb->start_location, pcb->end_location);
 			free(pcb);
 		}
@@ -286,7 +291,7 @@ void lowest_score() {
 	if(min_pcb != queue.head) {
 		//Rearranging queue list
 		previous_min->next = min_pcb->next;
-		struct PCB *old_head = pop_off_queue(queue);
+		struct PCB *old_head = pop_off_queue();
 		add_to_queue(old_head,"");
 
 		min_pcb->next = queue.head;
@@ -339,19 +344,29 @@ void add_to_queue(struct PCB *pcb,char *policy) {
 }
 
 void add_to_LRU_queue(struct Frame *frame) {
-	if (!queue.head) {
-		queue.head = frame;
-		queue.tail = frame;
+	if (!LRUqueue.head) {
+		LRUqueue.head = frame;
+		LRUqueue.tail = frame;
 		return;
 	}
 	//New tail
-		queue.tail->next = frame;
-		queue.tail = frame;
-		queue.tail->next = NULL;
-
+	LRUqueue.tail->next = frame;
+	LRUqueue.tail = frame;
+	LRUqueue.tail->next = NULL;
 }
 
-struct PCB* pop_off_queue(struct ReadyQueue queue) {
+struct Frame* pop_off_queue_LRU() {
+	//If last to pop, set head to NULL
+	if (LRUqueue.head) {
+		struct Frame *res = LRUqueue.head;
+		LRUqueue.head = res->next;
+		return res;
+	}
+	//This should never happen
+	return NULL;
+}
+
+struct PCB* pop_off_queue() {
 	//If last to pop, set head to NULL
 	if (queue.head) {
 		struct PCB *res = queue.head;
@@ -392,7 +407,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	struct PCB *pcb;
 	char* command;
 	int ran_every_line;
-	while ((pcb = pop_off_queue(queue))) {
+	while ((pcb = pop_off_queue())) {
 		//Keep track of whether we're done with every line of the file
 		//NOTE: with this approach, if correct, we would not need the PCB fileCompleted variable anymore
 		ran_every_line = 0;
@@ -440,7 +455,6 @@ int RR_a3(char* file1, char* file2, char* file3) {
 		}
 		
 		//Skip to here if we're at the end of the file, so we don't end up trying to parseInput("none")
-		
 		//If not done processing file, add it back into the queue
 		if (ran_every_line == 0) {
 			pcb->next = NULL;
@@ -567,10 +581,18 @@ void load_to_framestore(struct PCB* pcb) {
 //Based on LRU, finds and clears a frame. Returns the frame number of the cleared frame. 
 int free_frame_via_LRU() {
 	//Get the first frameNumber from the queue, i.e. the LRU
-	struct Frame *frame = pop_off_queue(LRUqueue);
+	struct Frame *frame = pop_off_queue_LRU();
 	int frameNumber = frame->number;
+
+	//Print the frame's contents
+	printf("Page fault! Victim page contents:\n");
+	printf("%s\n", mem_get_value_by_index(frameNumber*3));
+	printf("%s\n", mem_get_value_by_index(frameNumber*3+1));
+	printf("%s\n", mem_get_value_by_index(frameNumber*3+2));
+	printf("End of victim page contents.\n");
+
 	//Free the frame in the memory
-	free_frame(frameNumber)
+	free_frame(frameNumber);
 	free(frame);
 
 	return frameNumber;
