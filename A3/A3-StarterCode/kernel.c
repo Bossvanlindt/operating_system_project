@@ -383,9 +383,13 @@ int RR_a3(char* file1, char* file2, char* file3) {
 
 		//Run two lines at a time
 		for (int i = 0; i < 2; i++) {
-			// // Handle page fault by clearing a frame and loading the code to it (which is all handled by load_to_framestore)
-			if (pcb->pagetable[pcb->cur_page] == -1)
+			//Handle page fault by clearing a frame and loading the code to it (which is all handled by load_to_framestore)
+			//Following the directions, if there is a page fault we do not run the next line but instead push the PCB to the back of the queue
+			//and only load it into the frame. Continue with next one. 
+			if (pcb->pagetable[pcb->cur_page] == -1) {
 				load_to_framestore(pcb);
+				goto end;
+			}
 
 			//Process line
 			command = mem_get_value_by_index(pcb->pagetable[pcb->cur_page]*3 + pcb->offset);
