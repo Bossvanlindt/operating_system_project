@@ -451,7 +451,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 				//Create frame struct for the specific done frame 
 				struct Frame *frame = malloc(sizeof(struct Frame));
 				frame->number = pcb->pagetable[pcb->cur_page];
-
+				pcb->pagetable[pcb->cur_page] = -1;
 				//add it to the queue
 				add_to_LRU_queue(frame);
 
