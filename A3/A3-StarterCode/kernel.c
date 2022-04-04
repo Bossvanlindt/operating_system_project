@@ -594,12 +594,15 @@ void free_LRU_queue() {
 	struct Frame *frame = LRUqueue.head;
 	struct Frame *ptr;
 
-	while(frame->next) {
-		struct Frame *ptr = frame;
-		frame = frame->next;
-		free(ptr);
-	}
+	if(frame) {
+		while(frame->next) {
+			struct Frame *ptr = frame;
+			frame = frame->next;
+			free(ptr);
+		}
 
 	free(frame);
+	}
+	
 
 }
