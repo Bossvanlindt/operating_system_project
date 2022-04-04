@@ -400,6 +400,7 @@ int RR_a3(char* file1, char* file2, char* file3) {
 	//3. Add each PCB to the queue (necessary for round robin)
 	//4. Start off by loading two frames per file into framestore
 	//5. Run just like RR above but based on paging and handling of page faults
+	//6. Clear the backingStore & clear all frames so we can rerun without any problems
 
 	//Steps 1 2 3 4
 	process_files_a3(file1, file2, file3);
@@ -474,6 +475,10 @@ int RR_a3(char* file1, char* file2, char* file3) {
 			free(pcb);
 		}
 	}
+
+	//Final cleanup as we're now done
+	mem_init_framestore();
+	clear_backingStore();
 
 	return 0;
 }

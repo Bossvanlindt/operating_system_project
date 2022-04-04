@@ -49,6 +49,13 @@ void mem_init() {
 	
 }
 
+void mem_init_framestore() {
+	for (int i = 0; i < framesize; i++) {		
+		framestore[i].var = "none";
+		framestore[i].value = "none";
+	}
+}
+
 // Set key value pair
 void mem_set_value_variable(char *var_in, char *value_in) {
 	int i;

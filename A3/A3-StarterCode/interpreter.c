@@ -133,8 +133,7 @@ run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	return 0;
 }
 
-int quit(){
-
+void clear_backingStore() {
 	DIR* dir = opendir("backingStore");
 	struct dirent *d;
 	char filename[300];
@@ -144,6 +143,11 @@ int quit(){
 		sprintf(filename,"./backingStore/%s",d->d_name);
 		remove(filename);	
 	}
+}
+
+int quit(){
+
+	clear_backingStore();
 	//Delete folder
 	rmdir("./backingStore");
 
