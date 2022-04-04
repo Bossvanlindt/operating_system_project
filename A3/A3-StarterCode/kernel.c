@@ -90,12 +90,13 @@ void process_files_a3(char* file1, char* file2, char* file3);
 char* copy_to_backingstore(char* file);
 struct PCB* create_PCB(char* file);
 void load_to_framestore(struct PCB* pcb);
+void free_LRU_queue();
 
 
 //kernel method handles all kernel logic
 //Returns 0 if all went well
 //Returns -1 if something went wrong
-int kernel(char *file1, char *file2, char *file3, char *policy) {
+int kernel(char *file1, char *file2, char *file3, char *policy) { 
 
     int errorCode = 0;
 	
@@ -108,6 +109,7 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 	//A3 delegate all work for RR to RR_a3 function
 	if(strcmp(policy, "RR") == 0) {
 		errorCode = RR_a3(file1, file2, file3);
+		free_LRU_queue();
 		return errorCode;
 	}
 	
@@ -587,6 +589,9 @@ void load_to_framestore(struct PCB* pcb) {
 
 //Based on LRU, finds and clears a frame. Returns the frame number of the cleared frame. 
 int free_frame_via_LRU() {
+
+
+
 	//Get the first frameNumber from the queue, i.e. the LRU
 	struct Frame *frame = pop_off_queue_LRU();
 	int frameNumber = frame->number;
@@ -603,4 +608,19 @@ int free_frame_via_LRU() {
 	free(frame);
 
 	return frameNumber;
+}
+
+//free LRU queue
+void free_LRU_queue() {
+	struct Frame *frame = LRUqueue.head;
+	struct Frame *ptr;
+
+	while(frame->next) {
+		struct Frame *ptr = frame;
+		frame = frame->next;
+		free(ptr);
+	}
+
+	free(frame);
+
 }
