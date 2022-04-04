@@ -81,7 +81,6 @@ int notEnoughMemory();
 int sameFileNames();
 //List of policies
 int FCFS_SJF();
-int RR();
 int AGING();
 //A3 functions
 int RR_a3(char* file1, char* file2, char* file3);
@@ -141,8 +140,6 @@ int kernel(char *file1, char *file2, char *file3, char *policy) {
 	//Run the program based on the selected scheduling policy (need to do policy checks in interpreter's exec command)
 	if (strcmp(policy, "FCFS") == 0 || strcmp(policy, "SJF") == 0)
 		errorCode = FCFS_SJF();
-	else if (strcmp(policy, "RR") == 0)
-		errorCode = RR();
 	else if (strcmp(policy, "AGING") == 0)
 		errorCode = AGING(queue);
 	else return badcommand();
@@ -224,24 +221,6 @@ int FCFS_SJF() {
 		cpu_run(pcb->start_location, pcb->end_location);
 		clearMemoryLines(pcb->start_location, pcb->end_location);
 		free(pcb);
-	}
-	return 0;
-}
-
-int RR() {
-	struct PCB *pcb;
-	int cur_location = -1;
-	while ((pcb = pop_off_queue())) {
-		cur_location = cpu_run_lines(pcb->current_location, pcb->end_location, 2);
-		//If not done processing file, add it back into the queue
-		if (cur_location != -1) {
-			pcb->current_location = cur_location;
-			pcb->next = NULL;
-			add_to_queue(pcb, "");
-		} else {
-			clearMemoryLines(pcb->start_location, pcb->end_location);
-			free(pcb);
-		}
 	}
 	return 0;
 }
