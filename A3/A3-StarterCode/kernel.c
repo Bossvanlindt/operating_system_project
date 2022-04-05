@@ -569,8 +569,6 @@ void load_to_framestore(struct PCB* pcb) {
 //Based on LRU, finds and clears a frame. Returns the frame number of the cleared frame. 
 int free_frame_via_LRU() {
 
-
-
 	//Get the first frameNumber from the queue, i.e. the LRU
 	struct Frame *frame = pop_off_queue_LRU();
 	int frameNumber = frame->number;
@@ -596,13 +594,15 @@ void free_LRU_queue() {
 
 	if(frame) {
 		while(frame->next) {
-			struct Frame *ptr = frame;
+			ptr = frame;
 			frame = frame->next;
 			free(ptr);
 		}
 
-	free(frame);
+		free(frame);
 	}
 	
-
+	//Set these so that we can add to the queue properly again
+	LRUqueue.head = NULL;
+	LRUqueue.tail = NULL;
 }
