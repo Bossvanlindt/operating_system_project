@@ -1,7 +1,0 @@
-19.5/20
-
-You passed all the test cases. However, for my_ls, you should omit the hidden files such as .DS
-Your output also misses $ at the beginning of each output. This is not a huge problem, but please try to keep align with the sample output style.
-https://edstem.org/us/courses/16123/discussion/1104995
-
-Since your implementation showed great effort, I will only deduct 0.5 out of 20.
