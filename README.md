@@ -1,5 +1,5 @@
 # Operating Systems Project
-Implementation of a terminal cli, memory paging mechanism, and task scheduling with various schedulign policies. 
+Implementation of a terminal cli, memory paging mechanism, and task scheduling with various scheduling policies. 
 
 ## Notes from tutorial
 ### Part 1
